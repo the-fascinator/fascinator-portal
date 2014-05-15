@@ -246,6 +246,8 @@ public class CachingDynamicPageServiceImpl implements DynamicPageService {
         bindings.put("Services", scriptingServices);
         bindings.put("systemProperties", System.getProperties());
         bindings.put("request", request);
+        bindings.put("httpServletRequest",
+                requestGlobals.getHTTPServletRequest());
         bindings.put("response", response);
         bindings.put("formData", formData);
         bindings.put("sessionState", sessionState);
