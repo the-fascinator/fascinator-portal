@@ -88,11 +88,15 @@
 					jaffa.serverData[field] = data[field];
 					var prefix = matchesPrefix(field,prefixes);
 					if(prefix != null) {
-						var index = field.substring(prefix.length+1,prefix.length+2);
+						var substringBegin = prefix.length+1;
+						backPortionOfField = field.substring(prefix.length+1);
+						var subStringEnd = substringBegin + backPortionOfField.indexOf(".");
+						var index = evalInt(field.substring(substringBegin,subStringEnd));
 						var count = prefixCounts[prefix];
 						if (count == null) {
 							count = 0;
 						}
+						
 						if(count < index) {
 							prefixCounts[prefix] = index;
 						}
