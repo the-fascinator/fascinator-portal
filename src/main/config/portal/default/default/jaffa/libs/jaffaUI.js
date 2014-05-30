@@ -116,7 +116,7 @@ function jaffaUI(jaffaObject) {
         // Add our new header
         rootElement.prepend(ul);
         if (swapCallback != null) {
-            rootElement.tabs({select: swapCallback});
+            rootElement.tabs({beforeActivate: swapCallback});
         } else {
             rootElement.tabs();
         }
