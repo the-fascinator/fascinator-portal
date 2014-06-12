@@ -13,8 +13,12 @@ from java.io import ByteArrayOutputStream
 from java.io import InputStreamReader
 from java.lang import Exception
 from java.lang import StringBuilder
+from java.lang import String
 from java.lang import System
 from java.sql import Timestamp
+from java.io import File
+from com.googlecode.fascinator.common import FascinatorHome
+from org.apache.commons.io import FileUtils
 
 from org.apache.commons.lang import StringEscapeUtils
 
@@ -130,8 +134,9 @@ PRIMARY KEY (token))
             "metadataPrefix": tokenObject.getMetadataPrefix(),
             "expiry": Timestamp(tokenObject.getExpiry()),
             "nextToken": tokenObject.getNextToken(),
-            "resultJson": tokenObject.getResultJson()
+            "resultJson": ""
         }
+        FileUtils.writeStringToFile(File(FascinatorHome.getPath("oaipmh-results")+ "/"+tokenObject.getToken()),tokenObject.getResultJson())
         #self.log.debug("=== storeToken()")
         #self.log.debug("=== TOKEN: '{}'", tokenObject.getToken())
         #self.log.debug("=== METADATAPREFIX: '{}'", tokenObject.getMetadataPrefix())
@@ -140,6 +145,7 @@ PRIMARY KEY (token))
         #self.log.debug("=== START: '{}'", tokenObject.getStart())
         try:
             self.db.insert(self.dbName, index, table, fields)
+            
         except Exception, e:
             msg = self.parseError(e)
             if msg == "Duplicate record!":
@@ -160,6 +166,8 @@ PRIMARY KEY (token))
         }
         try:
             self.db.delete(self.dbName, index, table, fields)
+            file = File(FascinatorHome.getPath("oaipmh-results")+ "/"+tokenObject.getToken())
+            FileUtils.deleteQuietly(file)
             self.log.info("Delete successful! TOKEN='{}'", tokenObject.getToken())
             return True
         except Exception, e:
@@ -228,8 +236,9 @@ WHERE  token = ?
             expiry = "%s%s" % (epoch.replace(".0", ""), mSecs)
 
             nextToken = result.get(0).get("NEXTTOKEN")
-            resultJson = result.get(0).get("RESULTJSON")
-            
+            file = File(FascinatorHome.getPath("oaipmh-results")+ "/"+tokenId)
+            resultJson = FileUtils.readFileToString(file)
+            FileUtils.deleteQuietly(file)
             token = ResumptionToken(tokenId, metadataPrefix,nextToken,resultJson)
             token.setExpiry(expiry)
             
@@ -625,17 +634,17 @@ class OaiData:
         self.__result = SolrResult(ByteArrayInputStream(out.toByteArray()))
 
         totalFound = self.__result.getNumFound()
-        
+        self.log.debug("Total found:" + str(totalFound))
         if totalFound > recordsPerPage:
             
-            startRow = recordsPerPage
+            startRow = 0
             random.seed()
             resumptionToken = "%016x" % random.getrandbits(128)
             
-            nextResumptionToken = "%016x" % random.getrandbits(128)
+            nextResumptionToken = resumptionToken
             firstLoop = True
             while True:
-                
+                self.log.debug("Current Resumption Token: " + resumptionToken)
                 req.setParam("start", str(startRow)) 
                 out = ByteArrayOutputStream()
                 self.services.indexer.search(req, out)
@@ -644,21 +653,24 @@ class OaiData:
                 tokenObject = ResumptionToken(resumptionToken,self.__metadataPrefix,nextResumptionToken,result.toString())
                 
                 if firstLoop:
-                    self.__currentToken = ResumptionToken(None,self.__metadataPrefix,resumptionToken,None) 
+                    self.__currentToken = ResumptionToken(None,self.__metadataPrefix,resumptionToken,None)
+                    tokenObject = None 
                     firstLoop = False
-                    
+                
                 startRow = startRow + recordsPerPage
-                self.log.debug("Resumption Token: " + nextResumptionToken)
+                
                 if startRow > totalFound:
-                    self.log.debug(str(startRow) + " " + str(totalFound))
                     tokenObject = ResumptionToken(resumptionToken,self.__metadataPrefix,"",result.toString())
                     self.tokensDB.storeToken(tokenObject)
-                    break
-                self.tokensDB.storeToken(tokenObject)
+                    break;
+                if tokenObject is not None:
+                    self.tokensDB.storeToken(tokenObject)    
+                
                 
                 
                 resumptionToken = nextResumptionToken
                 nextResumptionToken = "%016x" % random.getrandbits(128)
+                self.log.debug("Resumption Token: " + resumptionToken + " next resumption token:" + nextResumptionToken)
                     
     def getToken(self):
         if self.isInView(self.__metadataPrefix) and not self.lastPage:
