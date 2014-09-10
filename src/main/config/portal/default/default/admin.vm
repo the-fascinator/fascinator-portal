@@ -224,6 +224,53 @@
     </form>
   </div>
 
+  <!-- Dialog: Add a user to a role-->
+  <div class="box hidden" id="add-user-role-dialog">
+    <form id="simple-form" method="post" action="">
+      <fieldset class="search">
+        <legend id="adduser-dialog-legend">Add a user to a role</legend>
+        <img alt="Loading" src="$portalPath/images/icons/loading.gif" id="simple-form-loading" class="hidden">
+        <div id="simple-form-error" class="stop-error hidden" style="display: none;">
+          <span id="simple-form-message"></span>
+        </div>
+        <p>
+        <select id="user-attributes">
+      </select>
+
+          <input type="text" name="user-attrib-value" id="user-attrib-value">
+          <button id="user-lookup-botton">Lookup</button>
+          <button id="user-add-botton" class="hidden">Add user</button>
+        </p>
+  <style>
+    #user-lookup {
+        overflow-x: auto;
+    }
+    #user-lookup th, #user-lookup td {
+        min-width: 200px;
+    }
+    #user-lookup div {
+        overflow-x: auto;
+    }
+    #user-lookup table {table-layout:fixed}
+  </style>
+  <div id="user-lookup">
+  <table>
+    <thead><tr><th></th><th>Username</th><th>Email</th></tr></thead>
+    <tbody>
+    <tr><td><input type="checkbox"></input></td><td>not that long</td><td>email</td></tr>
+    </tbody>
+    </table>
+    </div>
+        <p></p>
+        <input id="simple-form-hidden" type="hidden" value="" />
+        <input id="simple-form-source" type="hidden" value="" />
+        <input id="simple-form-action" type="hidden" value="" />
+        <input id="simple-form-followup" type="hidden" value="" />
+        <input id="add-user-role-dialog-cancel" type="button" value="Close" />
+      </fieldset>
+    </form>
+  </div>
+
 </div>
 <script type="text/javascript" src="$portalPath/js/jquery-ui-1.7.2.custom.min.js"></script>
 <script type="text/javascript">
@@ -294,7 +341,7 @@
             $("#create-user-form").dialog('close');
             return false;
         });
-  
+
         $("#create-user-submit").click(function() {
             $("#create-user-message").empty();
             $("#create-user-loading").show();
@@ -559,26 +606,66 @@
         });
 
         /******************************
-         *   Add User to Role - uses simple form
+         *   Add User to Role - uses pre-built form
          */
         $(".add-user-button").click(function() {
+            var the_dialog = "#add-user-role-dialog";
             var plugin = $(this).attr("rel");
             $("#roles-" + plugin + "-message").empty();
             $("#roles-" + plugin + "-error").hide();
             $("#roles-" + plugin + "-alert").hide();
-            $("#simple-dialog").dialog('option', 'title', 'Add a User');
             $("#simple-form-message").empty();
             $("#simple-form-error").hide();
-            $("#simple-form-legend").html("Enter a user to add to role '" + current_role + "'");
-            $("#simple-form-label").html("Username");
-            $("#simple-form-field").val("");
+            $("#adduser-dialog-legend").html("Find a user to add to role '" + current_role + "'");
+            clean_add_user_dialog();
+            jQuery.ajax({
+              type : "GET",
+              url : "$portalPath/admin/userlookup.ajax",
+              success:
+                  function(data, status) {
+                    var s = $("#user-attributes")[0];
+                    if (data.length > 0) {
+                      for(var val in data) {
+                        $('<option />', {value: data[val], text: data[val]}).appendTo(s);
+                      }
+                    }
+                    $('<option />', {value: "username", text: "username"}).appendTo(s);
+
+                    if (data.length == 0) {
+                      $("#user-lookup-botton").hide();
+                      $("#user-lookup").hide();
+                      $("#user-add-botton").show();
+                    } else {
+                      $("#user-add-botton").hide();
+                      $("#user-lookup-botton").show();
+                      $("#user-lookup").show();
+                      var theader = $('#user-lookup table thead');
+                      theader.empty();
+                      var tr = theader.append($('<tr>'));
+                      tr.append($('<th>'));
+                      tr.append($('<th>Username</th>'));
+                      jQuery.each(data, function(i, item) {
+                        tr.append($('<th>'+item+'</th>'));
+                      });
+                    }
+                  }
+            });
             $("#simple-form-hidden").val(current_role);
             $("#simple-form-source").val(plugin);
             $("#simple-form-action").val("add-user");
             $("#simple-form-submit").val("Add User");
             $("#simple-form-followup").val("add_user");
-            $("#simple-dialog").dialog(dialogOpts);
-            $("#simple-dialog").dialog('open');
+            var dialogOpts = {
+              autoOpen: false,
+              hide: "blind",
+              modal: true,
+              width: 460,
+              title: "Add a User to role"
+            };
+            $(the_dialog).dialog(dialogOpts);
+            $(the_dialog).dialog( "option", "width", 840 );
+            $(the_dialog).dialog('open');
+            //$(the_dialog).css("width","150px").css("height", "150px").css("overflow","auto");
             return false;
         });
         window['add_user'] = function(data) {
@@ -586,7 +673,36 @@
             $("<option>" + data + "</option>").appendTo("#roles-" + source + "-edit");
             $("#roles-" + source + "-alert").show();
             $("#roles-" + source + "-message").html("User '" + data.escapeHTML() + "' successfully add to role '" + current_role + "'");
-        }
+        };
+
+        $("#user-lookup-botton").click(function() {
+            $('#user-lookup table tbody').remove();
+            jQuery.ajax({
+              type: 'GET',
+              url: '$portalPath/admin/userlookup.ajax',
+              success:
+                  function (data, status) {
+                    jQuery.each(data, function(i, item) {
+                        $('<tr>').append(
+                        $('<td>').append("<input type='button' value='Add' data-username='" + item.username + "' onclick='add_complex_user(this);' />"),
+                        $('<td>').append($('<div>').html(item.username)),
+                        $('<td>').append($('<div>').html(item.commonName)),
+                        $('<td>').append($('<div>').html(item.email))).appendTo('#user-lookup table');
+                    });
+                  },
+              data: {
+                qt: $('#user-attributes').val(),
+                qv: $('#user-attrib-value').val()
+              }
+            });
+            return false;
+        });
+
+        $("#user-add-botton").click(function() {
+          submit_form($("#user-attrib-value").val());
+          $("#add-user-role-dialog-cancel").click();
+          return false;
+        });
 
         /******************************
          *   Remove User from Role
@@ -656,34 +772,70 @@
             $("#simple-dialog").dialog('close');
             return false;
         });
+        $("#add-user-role-dialog-cancel").click(function() {
+            $("#add-user-role-dialog").dialog('close');
+            clean_add_user_dialog();
+            return false;
+        });
         $("#simple-form-submit").click(function() {
+            submit_form($("#simple-form-field").val());
             $("#simple-form-message").empty();
             $("#simple-form-loading").show();
-            jQuery.ajax({
-                type : "POST",
-                url : "$portalPath/actions/admin.ajax",
-                success:
-                    function(data, status) {
-                        $("#simple-form-loading").hide();
-                        $("#simple-dialog").dialog('close');
-                        window[$("#simple-form-followup").val()](jQuery.trim(data.escapeHTML()));
-                    },
-                error:
-                    function (req, status, e) {
-                        $("#simple-form-loading").hide();
-                        $("#simple-form-error").show();
-                        $("#simple-form-message").html(req.responseText);
-                    },
-                data: {
-                    field:  $("#simple-form-field").val(),
-                    hidden: $("#simple-form-hidden").val(),
-                    source: $("#simple-form-source").val(),
-                    verb:   $("#simple-form-action").val()
-                }
-            });
         });
-
+        $("#user-attributes").change(function() {
+          $("#user-attrib-value").val("");
+          $('#user-lookup table tbody').remove();
+          if ($("#user-attributes").val() == 'username') {
+            $("#user-lookup-botton").hide();
+            $("#user-lookup").hide();
+            $("#user-add-botton").show();
+          } else {
+            $("#user-lookup-botton").show();
+            $("#user-lookup").show();
+            $("#user-add-botton").hide();
+          }
+        });
     });
+
+  function clean_add_user_dialog() {
+    $("#user-attributes").empty();
+    $("#user-attrib-value").val("");
+    $('#user-lookup table tbody').remove();
+  }
+
+  function add_complex_user(caller) {
+      var username = $(caller).data("username");
+      submit_form(username);
+      $("#add-user-role-dialog-cancel").click();
+  }
+
+  function submit_form(filedval) {
+      $("#simple-form-message").empty();
+      $("#simple-form-loading").show();
+      jQuery.ajax({
+          type : "POST",
+          url : "$portalPath/actions/admin.ajax",
+          success:
+              function(data, status) {
+                  $("#simple-form-loading").hide();
+                  $("#simple-dialog").dialog('close');
+                  window[$("#simple-form-followup").val()](jQuery.trim(data.escapeHTML()));
+              },
+          error:
+              function (req, status, e) {
+                  $("#simple-form-loading").hide();
+                  $("#simple-form-error").show();
+                  $("#simple-form-message").html(req.responseText);
+              },
+          data: {
+              field:  filedval,
+              hidden: $("#simple-form-hidden").val(),
+              source: $("#simple-form-source").val(),
+              verb:   $("#simple-form-action").val()
+          }
+      });
+  }
+
 -->
 </script>
 
