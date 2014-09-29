@@ -30,6 +30,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
@@ -256,6 +258,12 @@ public class CachingDynamicPageServiceImpl implements DynamicPageService {
         bindings.put("scriptsPath", portalPath + "/" + portalId + "/scripts");
         bindings.put("portalDir", portalPath + "/" + portalId);
         bindings.put("portalId", portalId);
+        String urlBase = this.urlBase;
+        if (StringUtils.isEmpty(urlBase)) {
+            urlBase = getURL(requestGlobals.getHTTPServletRequest(), config);
+        } else if (config.getString(null, "portal", "urlBases", portalId) != null) {
+            urlBase = config.getString(null, "portal", "urlBases", portalId);
+        }
         bindings.put("urlBase", urlBase);
         if (versionString == null) {
             bindings.put("portalPath", urlBase + portalId);
@@ -558,5 +566,28 @@ public class CachingDynamicPageServiceImpl implements DynamicPageService {
             messages.add("Script error: " + scriptName + "\n" + eMsg);
         }
         return scriptObject;
+    }
+
+    public static String getURL(HttpServletRequest req, JsonSimpleConfig config) {
+
+        // Sometimes when proxying https behind apache or another web server, if
+        // this is managed by the web server the scheme may be reported
+        // incorrectly to Fascinator
+        String scheme = config.getString(req.getScheme(), "urlSchemeName");
+        String serverName = req.getServerName(); // hostname.com
+        int serverPort = req.getServerPort(); // 80
+        String contextPath = req.getContextPath(); // /redbox
+
+        // Reconstruct original requesting URL
+        StringBuilder url = new StringBuilder();
+        url.append(scheme).append("://").append(serverName);
+
+        if ((serverPort != 80) && (serverPort != 443)) {
+            url.append(":").append(serverPort);
+        }
+
+        url.append(contextPath).append("/");
+
+        return url.toString();
     }
 }
