@@ -21,13 +21,16 @@ package com.googlecode.fascinator.portal.security.filter;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.json.simple.JSONArray;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -37,6 +40,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.googlecode.fascinator.common.JsonObject;
+import com.googlecode.fascinator.common.JsonSimpleConfig;
 import com.googlecode.fascinator.common.authentication.GenericUser;
 import com.googlecode.fascinator.common.authentication.SpringUser;
 import com.googlecode.fascinator.portal.JsonSessionState;
@@ -54,6 +59,22 @@ public class FascinatorAuthenticationInterceptorFilter extends
 
     private AuthenticationManager authManager = null;
     private PortalSecurityManager portalSecurityManager;
+    private Map<String, String> apiClients = new HashMap<String, String>();
+
+    public FascinatorAuthenticationInterceptorFilter() throws IOException {
+        JsonSimpleConfig config = new JsonSimpleConfig();
+        JSONArray clients = config.getArray("api", "clients");
+        if (clients != null) {
+            for (Object clientObject : clients) {
+                JsonObject client = (JsonObject) clientObject;
+                if (client.get("apiKey") != null
+                        && client.get("username") != null) {
+                    apiClients.put((String) client.get("apiKey"),
+                            (String) client.get("username"));
+                }
+            }
+        }
+    }
 
     public void setAuthManager(AuthenticationManager authManager) {
         this.authManager = authManager;
@@ -85,7 +106,22 @@ public class FascinatorAuthenticationInterceptorFilter extends
                     user.setUsername((String) jsonSessionState.get("username"));
                     user.setSource((String) jsonSessionState.get("source"));
                     token.setDetails(user);
+                } else {
+                    if (request.getParameter("apiKey") != null
+                            && apiClients.get(request.getParameter("apiKey")) != null) {
+                        String username = apiClients.get(request
+                                .getParameter("apiKey"));
+                        token = new PreAuthenticatedAuthenticationToken(
+                                username, "password");
+                        jsonSessionState.set("username", username);
+                        jsonSessionState.set("source", "internal");
+                        SpringUser user = new SpringUser();
+                        user.setUsername(username);
+                        user.setSource("internal");
+                        token.setDetails(user);
+                    }
                 }
+
             } else if (jsonSessionState.get("username") != null
                     && !authentication.getName().equals(
                             jsonSessionState.get("username"))) {
