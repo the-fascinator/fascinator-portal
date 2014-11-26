@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
  */
 public class FascinatorLoginUrlAuthenticationEntryPoint extends
 		LoginUrlAuthenticationEntryPoint {
-
+	
 	@Override
 	protected String determineUrlToUseForThisRequest(
 			HttpServletRequest request, HttpServletResponse response,
@@ -35,6 +35,7 @@ public class FascinatorLoginUrlAuthenticationEntryPoint extends
 		}
 		String redirectPath = path.substring(path.indexOf("/") + 1,
 				path.length());
+		response.setHeader("Access-Control-Allow-Origin", "*");
 		return "/" + portal + "/login?fromUrl=" + redirectPath;
 	}
 }
