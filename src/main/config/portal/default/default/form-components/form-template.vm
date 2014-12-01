@@ -91,7 +91,7 @@
 						var substringBegin = prefix.length+1;
 						backPortionOfField = field.substring(prefix.length+1);
 						var subStringEnd = substringBegin + backPortionOfField.indexOf(".");
-						var index = evalInt(field.substring(substringBegin,subStringEnd));
+						var index = parseInt(field.substring(substringBegin,subStringEnd),10);
 						var count = prefixCounts[prefix];
 						if (count == null) {
 							count = 0;
