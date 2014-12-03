@@ -625,12 +625,11 @@
                 function(data, status) {
                   try {
                       var s = $("#user-attributes")[0];
-                      if (typeof data === 'object' && Object.prototype.toString.call(data) === '[object Array]') {
-                          if (data.length > 0) {
+                        //Ensure that data is not null or empty
+                        if (typeof data === 'object' && Object.prototype.toString.call(data) === '[object Array]' && data.length > 0) {
                             for (var val in data) {
                               $('<option />', {value: data[val], text: data[val]}).appendTo(s);
                             }
-                          }
                           $("#user-add-botton").hide();
                           $("#user-lookup-botton").show();
                           $("#user-lookup").show();
