@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,8 +48,12 @@ import com.googlecode.fascinator.api.indexer.IndexerException;
 import com.googlecode.fascinator.api.indexer.SearchRequest;
 import com.googlecode.fascinator.common.JsonObject;
 import com.googlecode.fascinator.common.JsonSimple;
+import com.googlecode.fascinator.common.StorageDataUtil;
 import com.googlecode.fascinator.common.solr.SolrDoc;
 import com.googlecode.fascinator.common.solr.SolrResult;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Template-aware email utility class.
@@ -67,6 +72,7 @@ public class EmailNotifier implements Processor {
     private String ssl;
     private String username;
     private String password;
+    private boolean isVariableNameHiddenIfEmpty;
 
     /**
      * Initialises this instance.
@@ -80,6 +86,7 @@ public class EmailNotifier implements Processor {
         password = config.getString("", "password");
         tls = config.getString("false", "tls");
         ssl = config.getString("false", "ssl");
+        isVariableNameHiddenIfEmpty = Boolean.parseBoolean(config.getString("false", "isVariableNameHiddenIfEmpty"));
         Properties props = System.getProperties();
 
         props.put("mail.smtp.auth", "true");
@@ -100,7 +107,14 @@ public class EmailNotifier implements Processor {
             JsonSimple config, VelocityContext context) {
         for (String var : vars) {
             String varField = config.getString("", "mapping", var);
-            String replacement = solrDoc.getString(var, varField);
+            String replacement = getCollectionValues(config, solrDoc, varField);
+            if (StringUtils.isBlank(replacement)) {
+                if (isVariableNameHiddenIfEmpty) {
+                    replacement = solrDoc.getString("", varField);
+                } else {
+                    replacement = solrDoc.getString(var, varField);
+                }
+            }
             if (replacement == null || "".equals(replacement)) {
                 JSONArray arr = solrDoc.getArray(varField);
                 if (arr != null) {
@@ -108,12 +122,20 @@ public class EmailNotifier implements Processor {
                     if (replacement == null) {
                         // giving up, setting back to source value so caller can
                         // evaluate
-                        replacement = var;
+                        if (isVariableNameHiddenIfEmpty) {
+                           replacement = "";
+                        } else {
+                            replacement = var;
+                        }
                     }
                 } else {
                     // giving up, setting back to source value so caller can
                     // evaluate
-                    replacement = var;
+                    if (isVariableNameHiddenIfEmpty) {
+                        replacement = "";
+                    } else {
+                        replacement = var;
+                    }
                 }
             }
             log.debug("Getting variable value '" + var + "' using field '"
@@ -122,12 +144,92 @@ public class EmailNotifier implements Processor {
         }
     }
 
+    public String getCollectionValues(
+            JsonSimple emailConfig, JsonSimple tfPackage, String varField) {
+        String formattedCollectionValues = "";
+        JSONArray subKeys = emailConfig.getArray("collections", varField, "subKeys");
+        String tfPackageField = emailConfig.getString("", "collections", varField, "payloadKey");
+        if (StringUtils.isNotBlank(tfPackageField) && subKeys instanceof JSONArray) {
+            List<JsonObject> jsonList = new StorageDataUtil().getJavaList(tfPackage, tfPackageField);
+            log.debug("Collating collection values for email template...");
+            JSONArray fieldSeparators = emailConfig.getArray("collections", varField, "fieldSeparators");
+            String recordSeparator = emailConfig.getString(IOUtils.LINE_SEPARATOR, "collections", varField, "recordSeparator");
+            String nextDelimiter = " ";
+
+            for (JsonObject collectionRow : jsonList) {
+            	if (fieldSeparators instanceof JSONArray && fieldSeparators.size() > 0) {
+            		// if no more delimiters, continue to use the last one specified
+                    Object nextFieldSeparator = fieldSeparators.remove(0);
+                    if (nextFieldSeparator instanceof String) {
+                        nextDelimiter = (String)nextFieldSeparator;
+                    }  else {
+                        log.warn("Unable to retrieve String value from fieldSeparator: " + fieldSeparators.toString());
+                    }
+            	}
+                List<String> collectionValuesList = new ArrayList<String>();
+                for (Object requiredKey : subKeys) {
+                	Object rawKeyValue = collectionRow.get(requiredKey);
+                	if (rawKeyValue instanceof String) {
+                		String keyValue = StringUtils.trim((String)rawKeyValue);
+                		if (StringUtils.isNotBlank(keyValue)) {
+                            collectionValuesList.add(keyValue);
+                		} else if (!isVariableNameHiddenIfEmpty) {
+                            collectionValuesList.add("$" + requiredKey);
+                        } else {
+                            log.info("blank variable name will be hidden: " + keyValue);
+                        }
+                	} else {
+                        log.warn("No string value returned from: " + requiredKey);
+                    }
+                }
+                formattedCollectionValues += StringUtils.join(collectionValuesList, nextDelimiter) + recordSeparator;
+            }
+            formattedCollectionValues = StringUtils.chomp(formattedCollectionValues, recordSeparator);
+            log.debug("email formatted collection values: " + formattedCollectionValues);
+        }
+        return formattedCollectionValues;
+    }
+
+
+    /**
+     * Apart from evaluating the template using velocity context, this method also adds velocity's quiet reference
+     * and finally cleans up any punctuation left behind by empty references.
+     *
+     * @param context:   velocity context
+     * @param source:  email template
+     * @return : sanitized and velocity evaluated string
+     */
+    public String sanitizeAndEvaluateStr(String source, VelocityContext context) throws ParseErrorException, MethodInvocationException,
+            ResourceNotFoundException, IOException {
+        String result = preEvaluateAndSanitizeTemplate(source);
+        result = evaluateStr(result, context);
+        result = postEvaluateAndSanitizeTemplate(result);
+        return result;
+    }
+
+    private String preEvaluateAndSanitizeTemplate(String template) {
+        // we want unfilled recipients to be flagged in logging so only use default for empty variables in subject and body.
+        // match only dollar signs not followed by number or already using quiet pattern
+        String quietVelocityPattern = "(\\$)(?=([^\\d\\!]))";
+        String quietVelocityReplacement = "$1!";
+        String result = template.replaceAll(quietVelocityPattern, quietVelocityReplacement);
+        result = result.replaceAll("\\$!hashString", "\\$hashString");
+        return result;
+    }
+
     private String evaluateStr(String source, VelocityContext context)
             throws ParseErrorException, MethodInvocationException,
             ResourceNotFoundException, IOException {
         StringWriter writer = new StringWriter();
         Velocity.evaluate(context, writer, "evaluateStr", source);
         return writer.toString();
+    }
+
+    private String postEvaluateAndSanitizeTemplate(String template) {
+        // after empty variables removed there may be left over punctuation characters
+        String result = template.replaceAll(",[ \t]*,", "");
+        result = result.replaceAll("\\([ \t]*\\)", "");
+        return result;
     }
 
     /**
@@ -196,8 +298,15 @@ public class EmailNotifier implements Processor {
             SolrDoc solrDoc = results.get(0);
             VelocityContext context = new VelocityContext();
             initVars(solrDoc, vars, config, context);
-            String subject = evaluateStr(subjectTemplate, context);
-            String body = evaluateStr(bodyTemplate, context);
+            String subject;
+            String body;
+            if (isVariableNameHiddenIfEmpty) {
+                subject = sanitizeAndEvaluateStr(subjectTemplate, context);
+                body = sanitizeAndEvaluateStr(bodyTemplate, context);
+            } else {
+                subject = evaluateStr(subjectTemplate, context);
+                body = evaluateStr(bodyTemplate, context);
+            }
             String to = config.getString("", "to");
             String from = config.getString("", "from");
             String recipient = evaluateStr(to, context);
@@ -214,6 +323,7 @@ public class EmailNotifier implements Processor {
             }
         }
     }
+
 
     /**
      * Send the actual email.
@@ -298,3 +408,4 @@ public class EmailNotifier implements Processor {
         return true;
     }
 }
+
