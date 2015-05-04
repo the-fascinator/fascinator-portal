@@ -1,0 +1,59 @@
+## Prepare Java objects using refactoring to read config from a json file
+##Get Fascinator Home Path
+#set($fascinatorHomePathMethod = $component-type.getClass().forName("com.googlecode.fascinator.common.FascinatorHome").getMethod("getPath"))
+#set($fascinatorHome = $fascinatorHomePathMethod.invoke(null))
+
+##Get Class types for relevant constructors
+#set($fileClass = $component-type.getClass().forName("java.io.File"))
+#set($stringClass = $component-type.getClass().forName("java.lang.String"))
+#set($fileUtilsClass = $component-type.getClass().forName("org.apache.commons.io.FileUtils"))
+
+##get Constructors to invoke
+#set($fileClassConstructor = $fileClass.getConstructor($stringClass))
+#set($readFileToStringMethod = $fileUtilsClass.getMethod("readFileToString",$fileClass))
+
+##invoke File constructor to create File Object for json file
+#set($jsonFilePath = ${fascinatorHome}+"/"+$option-data)
+#set($fileObject = $fileClassConstructor.newInstance($jsonFilePath))
+
+
+<h1></h1>
+<div id="data-source-dropdown-$field-name"><p>You should see something replace this div</p></div>
+#if ($help)
+		<div id="${field-name}-help" class="help-content">#displayMessage($help)</div>
+#end
+
+<script>
+
+
+var widgetListBranding = {
+    "":"control-group",
+    ".jaffaValidationError":["alert", "alert-error"]
+};
+$(document).ready(function() {
+
+    $("[id='data-source-dropdown-$field-name']").jaffaDropDown({
+        "label":"#displayMessage($label)",
+        "field":"$field-name",
+        #if("$field-name-label"!="")
+        "label-field":"$!field-name-label",
+        #else
+        "label-field":"#displayMessage($label)",
+        #end
+        "option-data":$readFileToStringMethod.invoke(null,$fileObject),
+        #if("$!dataLevel"!="")"data-top-level-id":"$!dataLevel",#end
+        #if("$!idKey"!="")"data-id-key":"$!idKey",#end
+        #if("$!labelKey"!="")"data-label-key":"$!labelKey",#end
+        #if("$!listKey"!="")"data-list-key":"$!listKey",#end
+        #if("$!childrenKey"!="")"data-children-key":"$!childrenKey",#end
+        #if("$!defaultValue"!="")"default-value":"$!defaultValue",#end
+        #if("$!lookup-parser"!="")"lookup-parser":$!lookup-parser,#end
+        #if ($help)
+			"help-content": "[id='${field-name}-help']",
+		#end
+        "mandatory":"$mandatory",
+        "class-list":widgetListBranding
+
+    });
+});
+</script>
