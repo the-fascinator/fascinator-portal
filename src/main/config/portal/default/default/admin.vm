@@ -248,10 +248,9 @@
     }
     #user-lookup th, #user-lookup td {
         min-width: 200px;
+        overflow-wrap: break-word;
     }
-    #user-lookup div {
-        overflow-x: auto;
-    }
+    
     #user-lookup table {table-layout:fixed}
   </style>
           <div id="user-lookup">
@@ -628,6 +627,7 @@
                       var s = $("#user-attributes")[0];
                         //Ensure that data is not null or empty
                         if (typeof data === 'object' && Object.prototype.toString.call(data) === '[object Array]' && data.length > 0) {
+                        	$('<option />', {value: "username", text: "username"}).appendTo(s);
                             for (var val in data) {
                               $('<option />', {value: data[val], text: data[val]}).appendTo(s);
                             }
