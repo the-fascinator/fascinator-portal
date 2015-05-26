@@ -631,8 +631,8 @@
                             for (var val in data) {
                               $('<option />', {value: data[val], text: data[val]}).appendTo(s);
                             }
-                          $("#user-add-botton").hide();
-                          $("#user-lookup-botton").show();
+                          $("#user-add-botton").show();
+                          $("#user-lookup-botton").hide();
                           $("#user-lookup").show();
                           var theader = $('#user-lookup table thead');
                           theader.empty();
@@ -642,6 +642,7 @@
                           jQuery.each(data, function(i, item) {
                             tr.append($('<th>' + item + '</th>'));
                           });
+                          $("#user-lookup").hide();
                       }
                       else  {
                          $('<option />', {value: "username", text: "username"}).appendTo(s);
