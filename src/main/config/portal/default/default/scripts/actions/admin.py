@@ -191,7 +191,7 @@ class AdminData:
             # We need a JSON string for javascript
             plugin_strings = []
             for plugin in roles_list.keys():
-                roles = roles_list[plugin]
+                roles = [role for role in roles_list[plugin] if role is not None]
                 if len(roles) > 0:
                     plugin_strings.append("'" + plugin + "' : ['" + "','".join(roles) + "']")
                 else:
