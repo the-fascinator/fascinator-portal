@@ -50,8 +50,6 @@
         </td>
         <td id="roles-$data.getId()-list-buttons">
           <strong>Actions:</strong><br/>
-          <input type="button" class="button create-role-button" rel="$data.getId()" value="Create role" /><br/>
-          <input type="button" class="button delete-role-button" rel="$data.getId()" value="Delete role" /><br/>
           <input type="button" class="button edit-role-button" rel="$data.getId()" value="Edit role" />
         </td>
         <td id="roles-$data.getId()-edit-cell" class="hidden">
