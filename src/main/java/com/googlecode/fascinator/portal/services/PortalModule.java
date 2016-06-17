@@ -269,61 +269,61 @@ public class PortalModule {
         configuration.add(JsonSessionState.class, contribution);
     }
 
-    /**
-     * Modify the Tapestry URL encoding/decoding to ensure URLs are left
-     * exactly as received before they reach our code.
-     *
-     * @param configuration: Configuration from Tapestry
-     */
-    public static void contributeAlias(
-            Configuration<AliasContribution<URLEncoder>> configuration) {
-        configuration.add(AliasContribution.create(URLEncoder.class,
-                new NullURLEncoderImpl()));
-    }
+//    /**
+//     * Modify the Tapestry URL encoding/decoding to ensure URLs are left
+//     * exactly as received before they reach our code.
+//     *
+//     * @param configuration: Configuration from Tapestry
+//     */
+//    public static void contributeAlias(
+//            Configuration<AliasContribution<URLEncoder>> configuration) {
+//        configuration.add(AliasContribution.create(URLEncoder.class,
+//                new NullURLEncoderImpl()));
+//    }
 
-    /**
-     * Ensure Tapestry routes all URLs to our Dispatch object.
-     *
-     * The sole except is 'asset*' URLs which Tapestry will handle, although
-     * we don't use at this time
-     *
-     * @param configuration: Configuration from Tapestry
-     * @param requestGlobals: Request information
-     * @param urlEncoder: The URL encoder
-     */
-    public static void contributeURLRewriter(
-            OrderedConfiguration<URLRewriterRule> configuration,
-            @Inject final RequestGlobals requestGlobals,
-            @Inject final URLEncoder urlEncoder) {
-        URLRewriterRule rule = new URLRewriterRule() {
-
-            @Override
-            public Request process(Request request, URLRewriteContext context) {
-                // set the original request uri - without context
-                HttpServletRequest req = requestGlobals.getHTTPServletRequest();
-                String ctxPath = request.getContextPath();
-                String uri = req.getRequestURI();
-                request.setAttribute("RequestURI",
-                        uri.substring(ctxPath.length() + 1));
-                // forward all requests to the main dispatcher
-                String path = request.getPath();
-                String[] parts = path.substring(1).split("/");
-                if (parts.length > 0) {
-                    String start = parts[0];
-                    if (!"assets".equals(start) && !"dispatch".equals(start)) {
-                        path = "/dispatch" + path;
-                    }
-                } else {
-                    path = "/dispatch";
-                }
-                return new SimpleRequestWrapper(request, path);
-            }
-
-            @Override
-            public RewriteRuleApplicability applicability() {
-                return RewriteRuleApplicability.INBOUND;
-            }
-        };
-        configuration.add("dispatch", rule);
-    }
+//    /**
+//     * Ensure Tapestry routes all URLs to our Dispatch object.
+//     *
+//     * The sole except is 'asset*' URLs which Tapestry will handle, although
+//     * we don't use at this time
+//     *
+//     * @param configuration: Configuration from Tapestry
+//     * @param requestGlobals: Request information
+//     * @param urlEncoder: The URL encoder
+//     */
+//    public static void contributeURLRewriter(
+//            OrderedConfiguration<URLRewriterRule> configuration,
+//            @Inject final RequestGlobals requestGlobals,
+//            @Inject final URLEncoder urlEncoder) {
+//        URLRewriterRule rule = new URLRewriterRule() {
+//
+//            @Override
+//            public Request process(Request request, URLRewriteContext context) {
+//                // set the original request uri - without context
+//                HttpServletRequest req = requestGlobals.getHTTPServletRequest();
+//                String ctxPath = request.getContextPath();
+//                String uri = req.getRequestURI();
+//                request.setAttribute("RequestURI",
+//                        uri.substring(ctxPath.length() + 1));
+//                // forward all requests to the main dispatcher
+//                String path = request.getPath();
+//                String[] parts = path.substring(1).split("/");
+//                if (parts.length > 0) {
+//                    String start = parts[0];
+//                    if (!"assets".equals(start) && !"dispatch".equals(start)) {
+//                        path = "/dispatch" + path;
+//                    }
+//                } else {
+//                    path = "/dispatch";
+//                }
+//                return new SimpleRequestWrapper(request, path);
+//            }
+//
+//            @Override
+//            public RewriteRuleApplicability applicability() {
+//                return RewriteRuleApplicability.INBOUND;
+//            }
+//        };
+//        configuration.add("dispatch", rule);
+//    }
 }
