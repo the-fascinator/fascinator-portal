@@ -1,9 +1,10 @@
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.googlecode.the-fascinator</groupId>
 	<artifactId>fascinator-portal</artifactId>
-  <version>1.4-SNAPSHOT</version>
+	<version>1.4-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<name>The Fascinator - Portal</name>
 	<parent>
@@ -13,18 +14,18 @@
 	</parent>
 	<properties>
 		<spring.integration.version>2.2.3.RELEASE</spring.integration.version>
-        <groovy.version>2.3.4</groovy.version>
+		<groovy.version>2.3.4</groovy.version>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.googlecode.the-fascinator</groupId>
 			<artifactId>fascinator-core</artifactId>
-      <version>1.4-SNAPSHOT</version>
+			<version>1.4-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.googlecode.the-fascinator</groupId>
 			<artifactId>fascinator-common</artifactId>
-      <version>1.4-SNAPSHOT</version>
+			<version>1.4-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<groupId>velocity</groupId>
@@ -35,39 +36,39 @@
 		<dependency>
 			<groupId>com.googlecode.the-fascinator</groupId>
 			<artifactId>fascinator-plugin-api</artifactId>
-      <version>1.4-SNAPSHOT</version>
+			<version>1.4-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-      <version>1.6.1</version>
+			<version>1.6.1</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
-      <version>0.9.29</version>
+			<version>0.9.29</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-      <version>0.9.29</version>
+			<version>0.9.29</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>jcl-over-slf4j</artifactId>
-      <version>1.6.1</version>
+			<version>1.6.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>log4j-over-slf4j</artifactId>
-      <version>1.6.1</version>
+			<version>1.6.1</version>
 		</dependency>
-    <dependency>
-      <groupId>javax.persistence</groupId>
-      <artifactId>persistence-api</artifactId>
-      <version>1.0</version>
-      <scope>provided</scope>
-    </dependency>
+		<dependency>
+			<groupId>javax.persistence</groupId>
+			<artifactId>persistence-api</artifactId>
+			<version>1.0</version>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils</artifactId>
@@ -92,7 +93,7 @@
 		<dependency>
 			<groupId>dom4j</groupId>
 			<artifactId>dom4j</artifactId>
-      <version>1.6.1</version>
+			<version>1.6.1</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -115,9 +116,9 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-    		<groupId>org.mockito</groupId>
-	    	<artifactId>mockito-all</artifactId>
-    		<version>1.9.5</version>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<version>1.9.5</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -258,7 +259,11 @@
 			<artifactId>jfreechart</artifactId>
 			<version>1.0.14</version>
 		</dependency>
-	 	  
+		<dependency>
+			<groupId>br.com.arsmachina</groupId>
+			<artifactId>tapestry-url-rewriter</artifactId>
+			<version>2.0.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.integration</groupId>
 			<artifactId>spring-integration-core</artifactId>
@@ -266,40 +271,40 @@
 			<exclusions>
 				<exclusion>
 					<groupId>org.springframework</groupId>
-					<artifactId>spring-aop</artifactId>					
+					<artifactId>spring-aop</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.springframework</groupId>
-					<artifactId>spring-tx</artifactId>					
-				</exclusion>				
+					<artifactId>spring-tx</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.integration</groupId>
 			<artifactId>spring-integration-mail</artifactId>
-			<version>${spring.integration.version}</version>			
- 		</dependency>
- 		<dependency>
+			<version>${spring.integration.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.integration</groupId>
 			<artifactId>spring-integration-jms</artifactId>
 			<version>${spring.integration.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.springframework</groupId>
-					<artifactId>spring-web</artifactId>					
+					<artifactId>spring-web</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.springframework</groupId>
-					<artifactId>spring-tx</artifactId>					
-				</exclusion>				
-			</exclusions>						
- 		</dependency> 		
- 		<dependency>
+					<artifactId>spring-tx</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-jms</artifactId>
-			<version>3.0.5.RELEASE</version>			
+			<version>3.0.5.RELEASE</version>
 		</dependency>
- 		
+
 	</dependencies>
 	<profiles>
 		<profile>
@@ -561,44 +566,44 @@
 				</executions>
 			</plugin>
 			<plugin>
-						<artifactId>maven-dependency-plugin</artifactId>
-						<version>2.1</version>
-						<executions>
-							<execution>
-								<id>unpack-configdb-conf</id>
-								<phase>process-resources</phase>
-								<goals>
-									<goal>unpack</goal>
-								</goals>
-								<configuration>
-									<outputDirectory>${basedir}/target/portal/</outputDirectory>
-									<artifactItems>
-										<artifactItem>
-											<groupId>com.googlecode.the-fascinator</groupId>
-											<artifactId>fascinator-config-db</artifactId>
-											<classifier>fascinator-config</classifier>
-											<type>zip</type>
-											<version>0.1</version>
-										</artifactItem>
-										<artifactItem>
-											<groupId>com.googlecode.the-fascinator.plugins</groupId>
-											<artifactId>plugin-access-db</artifactId>
-										    <classifier>hibernate</classifier>  
-											<type>zip</type>
-											<version>1.0</version>
-										</artifactItem>
-										<artifactItem>
-											<groupId>com.googlecode.the-fascinator</groupId>
-											<artifactId>fascinator-common</artifactId>
-										    <classifier>hibernateauth</classifier>  
-											<type>zip</type>
-											<version>1.3</version>
-										</artifactItem>
-									</artifactItems>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>2.1</version>
+				<executions>
+					<execution>
+						<id>unpack-configdb-conf</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${basedir}/target/portal/</outputDirectory>
+							<artifactItems>
+								<artifactItem>
+									<groupId>com.googlecode.the-fascinator</groupId>
+									<artifactId>fascinator-config-db</artifactId>
+									<classifier>fascinator-config</classifier>
+									<type>zip</type>
+									<version>0.1</version>
+								</artifactItem>
+								<artifactItem>
+									<groupId>com.googlecode.the-fascinator.plugins</groupId>
+									<artifactId>plugin-access-db</artifactId>
+									<classifier>hibernate</classifier>
+									<type>zip</type>
+									<version>1.0</version>
+								</artifactItem>
+								<artifactItem>
+									<groupId>com.googlecode.the-fascinator</groupId>
+									<artifactId>fascinator-common</artifactId>
+									<classifier>hibernateauth</classifier>
+									<type>zip</type>
+									<version>1.3</version>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<artifactId>maven-war-plugin</artifactId>
 				<version>2.1.1</version>
@@ -661,21 +666,21 @@
 			</plugins>
 		</pluginManagement>
 	</build>
-	 <repositories>
-        <!-- Snapshots are not synched with Maven central -->
-        <repository>
-            <id>fascinator-snapshots</id>
-            <url>http://dev.redboxresearchdata.com.au/nexus/content/repositories/central-snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>redbox-nexus</id>
-            <url>http://dev.redboxresearchdata.com.au/nexus/content/groups/public/</url>
-        </repository>
-    </repositories>
+	<repositories>
+		<!-- Snapshots are not synched with Maven central -->
+		<repository>
+			<id>fascinator-snapshots</id>
+			<url>http://dev.redboxresearchdata.com.au/nexus/content/repositories/central-snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>redbox-nexus</id>
+			<url>http://dev.redboxresearchdata.com.au/nexus/content/groups/public/</url>
+		</repository>
+	</repositories>
 </project>

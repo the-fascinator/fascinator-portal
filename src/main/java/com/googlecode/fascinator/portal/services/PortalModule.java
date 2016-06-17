@@ -22,10 +22,12 @@ import java.util.List;
 
 import org.apache.tapestry5.ioc.Configuration;
 import org.apache.tapestry5.ioc.MappedConfiguration;
+import org.apache.tapestry5.ioc.OrderedConfiguration;
 import org.apache.tapestry5.ioc.ServiceBinder;
 import org.apache.tapestry5.ioc.services.RegistryShutdownHub;
 import org.apache.tapestry5.services.ApplicationStateContribution;
 import org.apache.tapestry5.services.ApplicationStateCreator;
+import org.apache.tapestry5.urlrewriter.URLRewriterRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -41,6 +43,7 @@ import com.googlecode.fascinator.api.roles.RolesManager;
 import com.googlecode.fascinator.api.storage.Storage;
 import com.googlecode.fascinator.common.JsonSimpleConfig;
 import com.googlecode.fascinator.portal.JsonSessionState;
+import com.googlecode.fascinator.portal.pages.DispatchURLRewriterRule;
 import com.googlecode.fascinator.portal.services.impl.ByteRangeRequestCacheImpl;
 import com.googlecode.fascinator.portal.services.impl.CachingDynamicPageServiceImpl;
 import com.googlecode.fascinator.portal.services.impl.DatabaseServicesImpl;
@@ -258,61 +261,8 @@ public class PortalModule {
         configuration.add(JsonSessionState.class, contribution);
     }
 
-//    /**
-//     * Modify the Tapestry URL encoding/decoding to ensure URLs are left
-//     * exactly as received before they reach our code.
-//     *
-//     * @param configuration: Configuration from Tapestry
-//     */
-//    public static void contributeAlias(
-//            Configuration<AliasContribution<URLEncoder>> configuration) {
-//        configuration.add(AliasContribution.create(URLEncoder.class,
-//                new NullURLEncoderImpl()));
-//    }
-
-//    /**
-//     * Ensure Tapestry routes all URLs to our Dispatch object.
-//     *
-//     * The sole except is 'asset*' URLs which Tapestry will handle, although
-//     * we don't use at this time
-//     *
-//     * @param configuration: Configuration from Tapestry
-//     * @param requestGlobals: Request information
-//     * @param urlEncoder: The URL encoder
-//     */
-//    public static void contributeURLRewriter(
-//            OrderedConfiguration<URLRewriterRule> configuration,
-//            @Inject final RequestGlobals requestGlobals,
-//            @Inject final URLEncoder urlEncoder) {
-//        URLRewriterRule rule = new URLRewriterRule() {
-//
-//            @Override
-//            public Request process(Request request, URLRewriteContext context) {
-//                // set the original request uri - without context
-//                HttpServletRequest req = requestGlobals.getHTTPServletRequest();
-//                String ctxPath = request.getContextPath();
-//                String uri = req.getRequestURI();
-//                request.setAttribute("RequestURI",
-//                        uri.substring(ctxPath.length() + 1));
-//                // forward all requests to the main dispatcher
-//                String path = request.getPath();
-//                String[] parts = path.substring(1).split("/");
-//                if (parts.length > 0) {
-//                    String start = parts[0];
-//                    if (!"assets".equals(start) && !"dispatch".equals(start)) {
-//                        path = "/dispatch" + path;
-//                    }
-//                } else {
-//                    path = "/dispatch";
-//                }
-//                return new SimpleRequestWrapper(request, path);
-//            }
-//
-//            @Override
-//            public RewriteRuleApplicability applicability() {
-//                return RewriteRuleApplicability.INBOUND;
-//            }
-//        };
-//        configuration.add("dispatch", rule);
-//    }
+    public static void contributeURLRewriter(
+			OrderedConfiguration<URLRewriterRule> configuration) {
+    	configuration.add("dispatch", new DispatchURLRewriterRule());
+    }
 }
