@@ -176,12 +176,12 @@
 		<dependency>
 			<groupId>org.apache.tapestry</groupId>
 			<artifactId>tapestry-core</artifactId>
-			<version>5.1.0.5</version>
+			<version>5.4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.tapestry</groupId>
 			<artifactId>tapestry-ioc</artifactId>
-			<version>5.1.0.5</version>
+			<version>5.4.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -196,7 +196,7 @@
 		<dependency>
 			<groupId>org.apache.tapestry</groupId>
 			<artifactId>tapestry-upload</artifactId>
-			<version>5.1.0.5</version>
+			<version>5.4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.velocity</groupId>
