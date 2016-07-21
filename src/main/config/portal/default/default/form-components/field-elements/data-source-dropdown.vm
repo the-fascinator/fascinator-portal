@@ -9,8 +9,10 @@ var widgetListBranding = {
     ".jaffaValidationError":["alert", "alert-error"]
 };
 $(document).ready(function() {
-    $("[id='data-source-dropdown-$field-name']").jaffaDropDown({
+    $("[id='data-source-dropdown-$!{field-name}']").jaffaDropDown({
+        #if("$label"!="")
         "label":"#displayMessage($label)",
+        #end
         "field":"$field-name",
         #if("$field-name-label"!="")
         "label-field":"$!field-name-label",
