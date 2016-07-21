@@ -20,11 +20,12 @@
 		#if("$!{max-size}"!="")"max-size":$max-size,#end
 		#if("$!{additional-container-classes}"!="")"additional-container-classes":"${additional-container-classes}",#end
 		"child-config":{
-			"label":"${label}",
+		    #if("$!{label}"!="")"label":"$label",#end
 			"field":"",
       		"portalPath":"$portalPath",
             #if("$!{suffix}"!="")"suffix":"$suffix",#end
-			"sub-elements": $sub-elements.settings	
+            #if("$!{textarea}" != "")"textarea":${textarea},#end
+			"sub-elements": $sub-elements.settings
 		},
 		"class-list":"widgetListBranding"
         });

@@ -1,4 +1,4 @@
-<div id="repeat-textbox-of-$field-name">
+<div id="repeat-textbox-of-${field-name}">
 <p>You should see something replace this div</p>
 </div>
 #if ($help)
@@ -22,8 +22,9 @@ $("[id='repeat-textbox-of-$field-name']").jaffaTextRepeatable({
 	"delete-item-html":"<button>Remove</button>",
 	"min-size":1,
 	"child-config":{
-		#if($!textarea)"textarea":"textarea",#end
-		"label":"${label}",
+	    #if("$!{suffix}"!="")"suffix":"${suffix}",#end
+		#if("$!{textarea}" != "")"textarea":${textarea},#end
+		"label":"$!{label}",
 		"field":""
 	},
 	"class-list":widgetListBranding,
