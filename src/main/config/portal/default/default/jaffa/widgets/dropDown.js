@@ -75,8 +75,13 @@ var DropDownWidgetBuilder = function($, jaffa) {
 
             // Label
             var label = this.getConfig("label");
+            var labelClass = "widgetLabel";
+            var configLabelClass = this.getConfig("label-class-list");
+            if (configLabelClass) {
+                labelClass = labelClass + " " + configLabelClass
+            }
             if (label != null && label.trim() != "") {
-                ui.append("<label for=\""+this.field+"\" class=\"widgetLabel\">"+label+"</label>");
+                ui.append("<label for=\""+this.field+"\" class=\""+ labelClass.trim() + "\">"+label+"</label>");
             }
 
             // Control
