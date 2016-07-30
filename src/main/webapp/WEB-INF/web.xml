@@ -62,6 +62,21 @@
         <servlet-class>com.googlecode.fascinator.portal.servlet.IndexerServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
+   <!-- Restlet adapter -->  
+   <servlet>  
+      <servlet-name>RestletServlet</servlet-name>  
+      <servlet-class>org.restlet.ext.servlet.ServerServlet</servlet-class>
+      <init-param>
+            <!-- Application class name -->
+            <param-name>org.restlet.application</param-name>
+            <param-value>com.googlecode.fascinator.redbox.ws.ReDBoxWebServiceApplication</param-value>
+      </init-param>
+   </servlet> 
+
+	<servlet-mapping>
+	   <servlet-name>RestletServlet</servlet-name>
+	   <url-pattern>/api/*</url-pattern>
+	</servlet-mapping>
     <!-- ActiveMQ AJAX messaging service -->
     <!--
     <servlet>

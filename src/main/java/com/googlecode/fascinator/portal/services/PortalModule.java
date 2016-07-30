@@ -265,4 +265,14 @@ public class PortalModule {
 			OrderedConfiguration<URLRewriterRule> configuration) {
     	configuration.add("dispatch", new DispatchURLRewriterRule());
     }
+    
+    /**
+     * Keep Tapestry from processing requests to the web service path.
+     * 
+     * @param configuration {@link Configuration}
+     */
+    public static void contributeIgnoredPathsFilter(
+            final Configuration<String> configuration) {
+        configuration.add("/api/.*");
+    }
 }
