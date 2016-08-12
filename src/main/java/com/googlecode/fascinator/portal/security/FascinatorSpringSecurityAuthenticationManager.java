@@ -22,37 +22,40 @@ import com.googlecode.fascinator.common.authentication.SpringUser;
  * @author andrewbrazzatti
  * 
  */
-public class FascinatorSpringSecurityAuthenticationManager implements
-        AuthenticationManager {
+public class FascinatorSpringSecurityAuthenticationManager implements AuthenticationManager {
 
-    private RoleManager roleManager = null;
+	private RoleManager roleManager = null;
 
-    public void setRoleManager(RoleManager roleManager) {
-        this.roleManager = roleManager;
-    }
+	public void setRoleManager(RoleManager roleManager) {
+		this.roleManager = roleManager;
+	}
 
-    @Override
-    public Authentication authenticate(Authentication authToken)
-            throws AuthenticationException {
-        GenericUser genericUser = (GenericUser) authToken.getDetails();
-        SpringUser user = new SpringUser();
-        user.setUsername(genericUser.getUsername());
-        user.setSource(genericUser.getSource());
-        List<GrantedAuthority> userRoles = buildRoleList(user);
+	@Override
+	public Authentication authenticate(Authentication authToken) throws AuthenticationException {
+		SpringUser user;
+		if (authToken.getDetails() instanceof SpringUser) {
+			user = (SpringUser) authToken.getDetails();
+		} else {
+			GenericUser genericUser = (GenericUser) authToken.getDetails();
+			user = new SpringUser();
+			user.setUsername(genericUser.getUsername());
+			user.setSource(genericUser.getSource());
+		}
+		List<GrantedAuthority> userRoles = buildRoleList(user);
+		PreAuthenticatedAuthenticationToken token = new PreAuthenticatedAuthenticationToken(user.getUsername(), user, userRoles);
+		token.setDetails(user);
+		return token;
 
-        return new PreAuthenticatedAuthenticationToken(user.getUsername(),
-                user, userRoles);
+	}
 
-    }
-
-    private List<GrantedAuthority> buildRoleList(GenericUser user) {
-        List<GrantedAuthority> userRoles = new ArrayList<GrantedAuthority>();
-        String[] roles = roleManager.getRoles(user.getUsername());
-        for (String role : roles) {
-            GrantedAuthority authority = new GrantedAuthorityImpl(role);
-            userRoles.add(authority);
-        }
-        return userRoles;
-    }
+	private List<GrantedAuthority> buildRoleList(GenericUser user) {
+		List<GrantedAuthority> userRoles = new ArrayList<GrantedAuthority>();
+		String[] roles = roleManager.getRoles(user.getUsername());
+		for (String role : roles) {
+			GrantedAuthority authority = new GrantedAuthorityImpl(role);
+			userRoles.add(authority);
+		}
+		return userRoles;
+	}
 
 }
