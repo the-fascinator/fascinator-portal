@@ -59,21 +59,8 @@ public class FascinatorAuthenticationInterceptorFilter extends
 
     private AuthenticationManager authManager = null;
     private PortalSecurityManager portalSecurityManager;
-    private Map<String, String> apiClients = new HashMap<String, String>();
 
     public FascinatorAuthenticationInterceptorFilter() throws IOException {
-        JsonSimpleConfig config = new JsonSimpleConfig();
-        JSONArray clients = config.getArray("api", "clients");
-        if (clients != null) {
-            for (Object clientObject : clients) {
-                JsonObject client = (JsonObject) clientObject;
-                if (client.get("apiKey") != null
-                        && client.get("username") != null) {
-                    apiClients.put((String) client.get("apiKey"),
-                            (String) client.get("username"));
-                }
-            }
-        }
     }
 
     public void setAuthManager(AuthenticationManager authManager) {
@@ -106,22 +93,7 @@ public class FascinatorAuthenticationInterceptorFilter extends
                     user.setUsername((String) jsonSessionState.get("username"));
                     user.setSource((String) jsonSessionState.get("source"));
                     token.setDetails(user);
-                } else {
-                    if (request.getParameter("apiKey") != null
-                            && apiClients.get(request.getParameter("apiKey")) != null) {
-                        String username = apiClients.get(request
-                                .getParameter("apiKey"));
-                        token = new PreAuthenticatedAuthenticationToken(
-                                username, "password");
-                        jsonSessionState.set("username", username);
-                        jsonSessionState.set("source", "internal");
-                        SpringUser user = new SpringUser();
-                        user.setUsername(username);
-                        user.setSource("internal");
-                        token.setDetails(user);
-                    }
                 }
-
             } else if (jsonSessionState.get("username") != null
                     && !authentication.getName().equals(
                             jsonSessionState.get("username"))) {
