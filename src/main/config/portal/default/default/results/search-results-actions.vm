@@ -12,7 +12,7 @@
 #end
 
 #if($showPackageMenu || $showActionsMenu)
-<ul class="nav actions">
+<ul class="nav actions fascinator">
     <li><a class="inactive">Actions:</a></li>
     #if($showActionsMenu)
         #if($createViewEnabled)
