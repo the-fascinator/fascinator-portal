@@ -19,10 +19,17 @@
         <button id="reharvest-accept">Start</button>
         <button id="reharvest-cancel">Cancel</button>
     </div>
+    <div class="block" id="reharvest-queued" style="display:none">
+        <p>
+            Objects have been successfully queued for reharvest.
+            <button id="reharvest-cancel">Close</button>
+        </p>
+    </div>
 </div>
 <script type="text/javascript">
 $(function() {
     $("#reharvest-view, #reharvest-cancel").click(function() {
+        $("#reharvest-queued").hide()
         $("#reharvest-view").toggleClass("selected");
         $("#reharvest-form").toggle("blind");
         jQuery.post("$portalPath/actions/state.ajax",
@@ -37,17 +44,20 @@ $(function() {
     });
 
     $("#reharvest-accept").click(function() {
-        var reharvestLogTimerId;
+        $("#reharvest-queued").hide()
         jQuery.post("$portalPath/actions/state.ajax",
             { func: "get", name: "reharvest/running/$portalId" },
             function(data, status) {
+                console.log(status);
+                console.log(data);
                 var running = (data.value == "true");
                 $("#reharvest-start").toggle(running);
                 $("#reharvest-progress").toggle(!running);
                 jQuery.post("$portalPath/actions/reharvest.ajax",
                     { func: "reharvest", portalId: "$portalId" },
                     function(data, status) {
-                        $("#reharvest-start").show();
+                        $("#reharvest-queued").show()
+                        $("#reharvest-start").hide();
                         $("#reharvest-progress").hide();
                     });
             },
