@@ -48,8 +48,6 @@ $(function() {
         jQuery.post("$portalPath/actions/state.ajax",
             { func: "get", name: "reharvest/running/$portalId" },
             function(data, status) {
-                console.log(status);
-                console.log(data);
                 var running = (data.value == "true");
                 $("#reharvest-start").toggle(running);
                 $("#reharvest-progress").toggle(!running);
