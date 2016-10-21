@@ -14,7 +14,7 @@
 	</parent>
 	<properties>
 		<spring.integration.version>2.2.3.RELEASE</spring.integration.version>
-		<groovy.version>2.3.4</groovy.version>
+		<groovy.version>2.4.5</groovy.version>
 	</properties>
 	<dependencies>
 		<dependency>
