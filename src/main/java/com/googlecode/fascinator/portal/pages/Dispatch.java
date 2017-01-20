@@ -61,6 +61,8 @@ import com.googlecode.fascinator.portal.services.HttpStatusCodeResponse;
 import com.googlecode.fascinator.portal.services.PortalManager;
 import com.googlecode.fascinator.portal.services.PortalSecurityManager;
 import com.googlecode.fascinator.portal.services.VelocityService;
+import com.googlecode.fascinator.portal.services.impl.MaintenanceModeService;
+import com.googlecode.fascinator.spring.ApplicationContextProvider;
 
 /**
  * <h3>Introduction</h3>
@@ -88,387 +90,407 @@ import com.googlecode.fascinator.portal.services.VelocityService;
  */
 public class Dispatch {
 
-    private static final String AJAX_EXT = ".ajax";
+	private static final String AJAX_EXT = ".ajax";
 
-    @SuppressWarnings("unused")
-    private static final String POST_EXT = ".post";
+	@SuppressWarnings("unused")
+	private static final String POST_EXT = ".post";
 
-    private static final String SCRIPT_EXT = ".script";
+	private static final String SCRIPT_EXT = ".script";
 
-    /** The default resource if none is specified. The home page, generally */
-    public static final String DEFAULT_RESOURCE = "home";
+	/** The default resource if none is specified. The home page, generally */
+	public static final String DEFAULT_RESOURCE = "home";
 
-    @Inject
-    private Logger log;
+	/** The maintenance mode resource */
+	public static final String MAINTENANCE_MODE_RESOURCE = "maintenance";
 
-    @SessionState
-    private JsonSessionState sessionState;
+	@Inject
+	private Logger log;
 
-    @Inject
-    private DynamicPageService pageService;
+	@SessionState
+	private JsonSessionState sessionState;
 
-    @Inject
-    private PortalManager portalManager;
+	@Inject
+	private DynamicPageService pageService;
 
-    @Inject
-    private PortalSecurityManager security;
+	@Inject
+	private PortalManager portalManager;
 
-    @Inject
-    private VelocityService velocityService;
+	@Inject
+	private PortalSecurityManager security;
 
-    @Inject
-    private Request request;
+	@Inject
+	private VelocityService velocityService;
 
-    @Inject
-    private Response response;
+	@Inject
+	private Request request;
 
-    @Inject
-    private MultipartDecoder decoder;
+	@Inject
+	private Response response;
 
-    @Inject
-    private RequestGlobals rg;
+	@Inject
+	private MultipartDecoder decoder;
 
-    private FormData formData;
+	@Inject
+	private RequestGlobals rg;
 
-    // Resource Processing variable
-    private String resourceName;
-    private String portalId;
-    private String defaultPortal;
-    private String requestUri;
-    private String[] path;
-    private HttpServletRequest hsr;
-    private boolean isFile;
-    private boolean isSpecial;
+	private FormData formData;
 
-    // Rendering variables
-    private String mimeType;
-    private InputStream stream;
+	// Resource Processing variable
+	private String resourceName;
+	private String portalId;
+	private String defaultPortal;
+	private String requestUri;
+	private String[] path;
+	private HttpServletRequest hsr;
+	private boolean isFile;
+	private boolean isSpecial;
 
-    private JsonSimpleConfig sysConfig;
+	// Rendering variables
+	private String mimeType;
+	private InputStream stream;
 
-    /**
-     * Entry point for Tapestry to send page requests.
-     * 
-     * @param params : An array of request parameters from Tapestry
-     * @returns StreamResponse : Tapestry object to return streamed response
-     */
-    public StreamResponse onActivate(Object... params) {
-        // log.debug("Dispatch starting : {} {}",
-        // request.getMethod(), request.getPath());
+	private JsonSimpleConfig sysConfig;
 
-        try {
-            sysConfig = new JsonSimpleConfig();
-            defaultPortal = sysConfig.getString(
-                    PortalManager.DEFAULT_PORTAL_NAME, "portal", "defaultView");
-        } catch (IOException ex) {
-            log.error("Error accessing system config", ex);
-            return new HttpStatusCodeResponse(500,
-                    "Sorry, an internal server error has occured");
-        }
+	/**
+	 * Entry point for Tapestry to send page requests.
+	 * 
+	 * @param params
+	 *            : An array of request parameters from Tapestry
+	 * @returns StreamResponse : Tapestry object to return streamed response
+	 */
+	public StreamResponse onActivate(Object... params) {
+		// log.debug("Dispatch starting : {} {}",
+		// request.getMethod(), request.getPath());
 
-        // Do all our parsing
-        resourceName = resourceProcessing();
+		try {
+			sysConfig = new JsonSimpleConfig();
+			defaultPortal = sysConfig.getString(PortalManager.DEFAULT_PORTAL_NAME, "portal", "defaultView");
+		} catch (IOException ex) {
+			log.error("Error accessing system config", ex);
+			return new HttpStatusCodeResponse(500, "Sorry, an internal server error has occured");
+		}
 
-        // Make sure it's valid
-        if (resourceName == null) {
-            if (response.isCommitted()) {
-                return GenericStreamResponse.noResponse();
-            }
-            return new HttpStatusCodeResponse(404, "Page not found: "
-                    + requestUri);
-        }
+		// Do all our parsing
+		resourceName = resourceProcessing();
 
-        // Initialise storage for our form data
-        // if there's no persistant data found.
-        prepareFormData();
+		// Make sure it's valid
+		if (resourceName == null) {
+			if (response.isCommitted()) {
+				return GenericStreamResponse.noResponse();
+			}
+			return new HttpStatusCodeResponse(404, "Page not found: " + requestUri);
+		}
 
-        // Set session timeout (defaults to 2 hours)
-        int timeoutMins = sysConfig.getInteger(120, "portal", "sessionTimeout");
-        hsr.getSession().setMaxInactiveInterval(timeoutMins * 60);
+		// Initialise storage for our form data
+		// if there's no persistant data found.
+		prepareFormData();
 
-        // SSO Integration - Ignore AJAX and such
-        if (!isSpecial) {
-            // Make sure it's not a static resource
-            if (security.testForSso(sessionState, resourceName, requestUri)) {
-                // Run SSO
-                boolean redirected = security.runSsoIntegration(sessionState,
-                        formData);
-                // Finish here if SSO redirected
-                if (redirected) {
-                    return GenericStreamResponse.noResponse();
-                }
-            }
-        }
+		// Set session timeout (defaults to 2 hours)
+		int timeoutMins = sysConfig.getInteger(120, "portal", "sessionTimeout");
+		hsr.getSession().setMaxInactiveInterval(timeoutMins * 60);
 
-        // Make static resources cacheable
-        if (resourceName.indexOf(".") != -1 && !isSpecial) {
-            response.setHeader("Cache-Control", "public");
-            response.setDateHeader("Expires", System.currentTimeMillis()
-                    + new TimeInterval("10y").milliseconds());
-        }
+		// SSO Integration - Ignore AJAX and such
+		if (!isSpecial) {
+			// Make sure it's not a static resource
+			if (security.testForSso(sessionState, resourceName, requestUri)) {
+				// Run SSO
+				boolean redirected = security.runSsoIntegration(sessionState, formData);
+				// Finish here if SSO redirected
+				if (redirected) {
+					return GenericStreamResponse.noResponse();
+				}
+			}
+		}
 
-        // Are we doing a file upload?
-        isFile = ServletFileUpload.isMultipartContent(hsr);
-        if (isFile) {
-            fileProcessing();
-        }
+		// Make static resources cacheable
+		if (resourceName.indexOf(".") != -1 && !isSpecial) {
+			response.setHeader("Cache-Control", "public");
+			response.setDateHeader("Expires", System.currentTimeMillis() + new TimeInterval("10y").milliseconds());
+		}
 
-        // Page render time
-        renderProcessing();
+		// Are we doing a file upload?
+		isFile = ServletFileUpload.isMultipartContent(hsr);
+		if (isFile) {
+			fileProcessing();
+		}
 
-        return new GenericStreamResponse(mimeType, stream);
-    }
+		// Page render time
+		renderProcessing();
 
-    private void prepareFormData() {
-        hsr = rg.getHTTPServletRequest();
-        if ((resourceName.indexOf(".") == -1) || isSpecial) {
-            if (formData == null) {
-                formData = new FormData(request, hsr);
-                // log.debug("created FormData:{}", formData);
-            }
-        }
-    }
+		return new GenericStreamResponse(mimeType, stream);
+	}
 
-    private void fileProcessing() {
-        // What we are looking for
-        UploadedFile uploadedFile = null;
-        String workflowId = null;
+	private void prepareFormData() {
+		hsr = rg.getHTTPServletRequest();
+		if ((resourceName.indexOf(".") == -1) || isSpecial) {
+			if (formData == null) {
+				formData = new FormData(request, hsr);
+				// log.debug("created FormData:{}", formData);
+			}
+		}
+	}
 
-        // Roles of current user
-        String username = (String) sessionState.get("username");
-        String userSource = (String) sessionState.get("source");
-        List<String> roles = null;
-        try {
-            User user = security.getUser(sessionState, username, userSource);
-            String[] roleArray = security.getRolesList(sessionState, user);
-            roles = Arrays.asList(roleArray);
-        } catch (AuthenticationException ex) {
-            log.error("Error retrieving user data.");
-            return;
-        }
+	private void fileProcessing() {
+		// What we are looking for
+		UploadedFile uploadedFile = null;
+		String workflowId = null;
 
-        // The workflow we're using
-        List<String> reqParams = request.getParameterNames();
-        log.info("REQUEST {}", request);
-        log.info("reqParams {}", reqParams);
-        if (reqParams.contains("upload-file-workflow")) {
-            workflowId = request.getParameter("upload-file-workflow");
-        }
-        if (workflowId == null) {
-            log.error("No workflow provided with form data.");
-            return;
-        }
-        // Upload context
-        String uploadContext = "";
-        if (reqParams.contains("upload-file-context")) {
-            uploadContext = request.getParameter("upload-file-context");
-        }
+		// Roles of current user
+		String username = (String) sessionState.get("username");
+		String userSource = (String) sessionState.get("source");
+		List<String> roles = null;
+		try {
+			User user = security.getUser(sessionState, username, userSource);
+			String[] roleArray = security.getRolesList(sessionState, user);
+			roles = Arrays.asList(roleArray);
+		} catch (AuthenticationException ex) {
+			log.error("Error retrieving user data.");
+			return;
+		}
 
-        JsonSimple workflowConfig = sysConfig.getJsonSimpleMap("uploader").get(
-                workflowId);
+		// The workflow we're using
+		List<String> reqParams = request.getParameterNames();
+		log.info("REQUEST {}", request);
+		log.info("reqParams {}", reqParams);
+		if (reqParams.contains("upload-file-workflow")) {
+			workflowId = request.getParameter("upload-file-workflow");
+		}
+		if (workflowId == null) {
+			log.error("No workflow provided with form data.");
+			return;
+		}
+		// Upload context
+		String uploadContext = "";
+		if (reqParams.contains("upload-file-context")) {
+			uploadContext = request.getParameter("upload-file-context");
+		}
 
-        // Roles allowed to upload into this workflow
-        boolean security_check = false;
-        for (String role : workflowConfig.getStringList("security")) {
-            if (roles.contains(role)) {
-                security_check = true;
-            }
-        }
-        if (!security_check) {
-            log.error("Security error, current user not allowed to upload.");
-            return;
-        }
+		JsonSimple workflowConfig = sysConfig.getJsonSimpleMap("uploader").get(workflowId);
 
-        // Get the workflow's file directory
-        String file_path = workflowConfig.getString(null, "upload-path");
+		// Roles allowed to upload into this workflow
+		boolean security_check = false;
+		for (String role : workflowConfig.getStringList("security")) {
+			if (roles.contains(role)) {
+				security_check = true;
+			}
+		}
+		if (!security_check) {
+			log.error("Security error, current user not allowed to upload.");
+			return;
+		}
 
-        // Get the uploaded file
-        for (String param : reqParams) {
-            UploadedFile tmpFile = decoder.getFileUpload(param);
-            if (tmpFile != null) {
-                // Our file
-                uploadedFile = tmpFile;
-            }
-        }
-        if (uploadedFile == null) {
-            log.error("No uploaded file found!");
-            return;
-        }
+		// Get the workflow's file directory
+		String file_path = workflowConfig.getString(null, "upload-path");
 
-        // Write the file to that directory
-        if (uploadContext == null || "".equals(uploadContext)) {
-            file_path = file_path + "/" + uploadedFile.getFileName();
-        } else {
-            file_path = file_path + "/" + uploadContext + "/" + uploadedFile.getFileName();
-        }
-        File file = new File(file_path);
-        if (!file.exists()) {
-            file.getParentFile().mkdirs();
-            try {
-                file.createNewFile();
-            } catch (IOException ex) {
-                log.error("Failed writing file", ex);
-                return;
-            }
-        }
-        uploadedFile.write(file);
+		// Get the uploaded file
+		for (String param : reqParams) {
+			UploadedFile tmpFile = decoder.getFileUpload(param);
+			if (tmpFile != null) {
+				// Our file
+				uploadedFile = tmpFile;
+			}
+		}
+		if (uploadedFile == null) {
+			log.error("No uploaded file found!");
+			return;
+		}
 
-        // Make sure the new file gets harvested
-        String configPath = workflowConfig.getString(null, "json-config");
-        if (configPath == null) {
-            log.error("No harvest configuration file provided!");
-            return;
-        }
-        File harvestFile = new File(configPath);
-        // Get the workflow template needed for stage 1
-        String template = "";
-        try {
-            JsonSimple harvestConfig = new JsonSimple(harvestFile);
-            List<JsonSimple> stages = harvestConfig.getJsonSimpleList("stages");
-            if (stages.size() > 0) {
-                template = stages.get(0).getString(null, "template");
-            }
-        } catch (IOException ex) {
-            log.error("Unable to access workflow config : ", ex);
-        }
+		// Write the file to that directory
+		if (uploadContext == null || "".equals(uploadContext)) {
+			file_path = file_path + "/" + uploadedFile.getFileName();
+		} else {
+			file_path = file_path + "/" + uploadContext + "/" + uploadedFile.getFileName();
+		}
+		File file = new File(file_path);
+		if (!file.exists()) {
+			file.getParentFile().mkdirs();
+			try {
+				file.createNewFile();
+			} catch (IOException ex) {
+				log.error("Failed writing file", ex);
+				return;
+			}
+		}
+		uploadedFile.write(file);
 
-        HarvestClient harvester = null;
-        String oid = null;
-        String error = null;
-        try {
-            harvester = new HarvestClient(harvestFile, file, username);
-            harvester.start();
-            oid = harvester.getUploadOid();
-            harvester.shutdown();
-        } catch (PluginException ex) {
-            error = "File upload failed : " + ex.getMessage();
-            log.error(error);
-            harvester.shutdown();
-        } catch (Exception ex) {
-            log.error("Failed harvest", ex);
-            return;
-        }
-        boolean success = file.delete();
-        if (!success) {
-            log.error("Error deleting uploaded file from cache: "
-                    + file.getAbsolutePath());
-        }
+		// Make sure the new file gets harvested
+		String configPath = workflowConfig.getString(null, "json-config");
+		if (configPath == null) {
+			log.error("No harvest configuration file provided!");
+			return;
+		}
+		File harvestFile = new File(configPath);
+		// Get the workflow template needed for stage 1
+		String template = "";
+		try {
+			JsonSimple harvestConfig = new JsonSimple(harvestFile);
+			List<JsonSimple> stages = harvestConfig.getJsonSimpleList("stages");
+			if (stages.size() > 0) {
+				template = stages.get(0).getString(null, "template");
+			}
+		} catch (IOException ex) {
+			log.error("Unable to access workflow config : ", ex);
+		}
 
-        // Now create some session data for use later
-        Map<String, String> file_details = new LinkedHashMap<String, String>();
-        file_details.put("name", uploadedFile.getFileName());
-        if (error != null) {
-            // Strip our package/class details from error string
-            Pattern pattern = Pattern.compile("au\\..+Exception:");
-            Matcher matcher = pattern.matcher(error);
-            file_details.put("error", matcher.replaceAll(""));
-        }
-        file_details.put("workflow", workflowId);
-        file_details.put("template", template);
-        file_details.put("location", file_path);
-        file_details.put("size", String.valueOf(uploadedFile.getSize()));
-        file_details.put("type", uploadedFile.getContentType());
-        if (oid != null) {
-            file_details.put("oid", oid);
-        }
-        // Helps some browsers (like IE7) resolve the path from the form
-        sessionState.set("fileName", uploadedFile.getFileName());
-        sessionState.set(uploadedFile.getFileName(), file_details);
-        formData.set("fileProcessing", "true");
-        formData.set("oid", oid);
-        sessionState.set("uploadFormData", formData);
-    }
+		HarvestClient harvester = null;
+		String oid = null;
+		String error = null;
+		try {
+			harvester = new HarvestClient(harvestFile, file, username);
+			harvester.start();
+			oid = harvester.getUploadOid();
+			harvester.shutdown();
+		} catch (PluginException ex) {
+			error = "File upload failed : " + ex.getMessage();
+			log.error(error);
+			harvester.shutdown();
+		} catch (Exception ex) {
+			log.error("Failed harvest", ex);
+			return;
+		}
+		boolean success = file.delete();
+		if (!success) {
+			log.error("Error deleting uploaded file from cache: " + file.getAbsolutePath());
+		}
 
-    private void renderProcessing() {
-        // render the page or retrieve the resource
-        if ((resourceName.indexOf(".") == -1) || isSpecial) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            mimeType = pageService.render(portalId, resourceName, out,
-                    formData, sessionState);
-            stream = new ByteArrayInputStream(out.toByteArray());
-        } else {
-            mimeType = MimeTypeUtil.getMimeType(resourceName);
-            stream = velocityService.getResource(portalId, resourceName);
-        }
-    }
+		// Now create some session data for use later
+		Map<String, String> file_details = new LinkedHashMap<String, String>();
+		file_details.put("name", uploadedFile.getFileName());
+		if (error != null) {
+			// Strip our package/class details from error string
+			Pattern pattern = Pattern.compile("au\\..+Exception:");
+			Matcher matcher = pattern.matcher(error);
+			file_details.put("error", matcher.replaceAll(""));
+		}
+		file_details.put("workflow", workflowId);
+		file_details.put("template", template);
+		file_details.put("location", file_path);
+		file_details.put("size", String.valueOf(uploadedFile.getSize()));
+		file_details.put("type", uploadedFile.getContentType());
+		if (oid != null) {
+			file_details.put("oid", oid);
+		}
+		// Helps some browsers (like IE7) resolve the path from the form
+		sessionState.set("fileName", uploadedFile.getFileName());
+		sessionState.set(uploadedFile.getFileName(), file_details);
+		formData.set("fileProcessing", "true");
+		formData.set("oid", oid);
+		sessionState.set("uploadFormData", formData);
+	}
 
-    private String resourceProcessing() {
-        requestUri = request.getAttribute("RequestURI").toString();
-        path = requestUri.split("/");
+	private void renderProcessing() {
+		// render the page or retrieve the resource
+		if ((resourceName.indexOf(".") == -1) || isSpecial) {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			mimeType = pageService.render(portalId, resourceName, out, formData, sessionState);
+			stream = new ByteArrayInputStream(out.toByteArray());
+		} else {
+			mimeType = MimeTypeUtil.getMimeType(resourceName);
+			stream = velocityService.getResource(portalId, resourceName);
+		}
+	}
 
-        // log.debug("requestUri:'{}', path:'{}'", requestUri, path);
-        // log.debug("path.length:{}", path.length);
-        if ("".equals(requestUri) || path.length == 1) {
-            portalId = "".equals(path[0]) ? defaultPortal : path[0];
-            String url = sysConfig.getString(null, "urlBase");
-            if (url != null) {
-                url += portalId + "/" + DEFAULT_RESOURCE;
-            } else {
-                url = request.getContextPath() + "/" + portalId + "/"
-                        + DEFAULT_RESOURCE;
-            }
-            try {
-                log.debug("REDIRECT : '{}'", url);
-                response.sendRedirect(url);
-            } catch (IOException ioe) {
-                log.error("Failed to redirect to default URL: {}", url);
-            }
-            return null;
-        }
+	private String resourceProcessing() {
+		requestUri = request.getAttribute("RequestURI").toString();
+		path = requestUri.split("/");
 
-        portalId = (String) sessionState.get("portalId", defaultPortal);
-        resourceName = DEFAULT_RESOURCE;
-        if (path.length > 1) {
-            portalId = path[0];
-            resourceName = StringUtils.join(path, "/", 1, path.length);
-        }
+		// log.debug("requestUri:'{}', path:'{}'", requestUri, path);
+		// log.debug("path.length:{}", path.length);
+		if ("".equals(requestUri) || path.length == 1) {
+			portalId = "".equals(path[0]) ? defaultPortal : path[0];
+			String url = sysConfig.getString(null, "urlBase");
+			if (url != null) {
+				url += portalId + "/" + DEFAULT_RESOURCE;
+			} else {
+				url = request.getContextPath() + "/" + portalId + "/" + DEFAULT_RESOURCE;
+			}
+			try {
+				log.debug("REDIRECT : '{}'", url);
+				response.sendRedirect(url);
+			} catch (IOException ioe) {
+				log.error("Failed to redirect to default URL: {}", url);
+			}
+			return null;
+		}
+		MaintenanceModeService maintenanceModeService = (MaintenanceModeService) ApplicationContextProvider
+				.getApplicationContext().getBean("maintenanceModeService");
 
-        if (!portalManager.exists(portalId)) {
-            return null;
-        }
+		if (path.length > 1 && !MAINTENANCE_MODE_RESOURCE.equals(path[1]) && maintenanceModeService.isMaintanceMode()) {
+			//If the request is for a file involved in rendering the maintenance page, we want them to pass through 
+			if (!requestUri.matches(".*\\.(js|css|png|jpg|jpeg|gif)")) {
+				portalId = "".equals(path[0]) ? defaultPortal : path[0];
+				String url = request.getContextPath() + "/" + portalId + "/" + MAINTENANCE_MODE_RESOURCE;
 
-        isSpecial = false;
-        String match = getBestMatchResource(resourceName);
-        // log.trace("resourceName = {}, match = {}", resourceName, match);
+				try {
+					log.debug("REDIRECT : '{}'", url);
+					response.sendRedirect(url);
+				} catch (IOException ioe) {
+					log.error("Failed to redirect to default URL: {}", url);
+				}
+				return null;
+			}
+		}
 
-        return match;
-    }
+		portalId = (String) sessionState.get("portalId", defaultPortal);
+		resourceName = DEFAULT_RESOURCE;
+		if (path.length > 1)
 
-    /**
-     * Parse the request URL to find the best matching resource from the portal.
-     * 
-     * This method will recursively call itself if required to break the URL
-     * down into constituent parts.
-     * 
-     * @param resource : The resource we are looking for
-     * @returns String : The best matching resource
-     */
-    public String getBestMatchResource(String resource) {
-        String searchable = resource;
-        String ext = "";
-        // Look for AJAX
-        if (resource.endsWith(AJAX_EXT)) {
-            isSpecial = true;
-            ext = AJAX_EXT;
-        }
-        // Look for scripts
-        if (resource.endsWith(SCRIPT_EXT)) {
-            isSpecial = true;
-            ext = SCRIPT_EXT;
-        }
-        // Strip special extensions whilst checking on disk
-        if (isSpecial) {
-            searchable = resource.substring(0, resource.lastIndexOf(ext));
-        }
-        // Return if found
-        if (velocityService.resourceExists(portalId, searchable) != null) {
-            return resource;
-        }
-        // Keep checking
-        int slash = resource.lastIndexOf('/');
-        if (slash != -1) {
-            return getBestMatchResource(resource.substring(0, slash));
-        }
-        return null;
-    }
+		{
+			portalId = path[0];
+			resourceName = StringUtils.join(path, "/", 1, path.length);
+		}
+
+		if (!portalManager.exists(portalId))
+
+		{
+			return null;
+		}
+
+		isSpecial = false;
+
+		String match = getBestMatchResource(resourceName);
+		// log.trace("resourceName = {}, match = {}", resourceName, match);
+
+		return match;
+
+	}
+
+	/**
+	 * Parse the request URL to find the best matching resource from the portal.
+	 * 
+	 * This method will recursively call itself if required to break the URL
+	 * down into constituent parts.
+	 * 
+	 * @param resource
+	 *            : The resource we are looking for
+	 * @returns String : The best matching resource
+	 */
+	public String getBestMatchResource(String resource) {
+		String searchable = resource;
+		String ext = "";
+		// Look for AJAX
+		if (resource.endsWith(AJAX_EXT)) {
+			isSpecial = true;
+			ext = AJAX_EXT;
+		}
+		// Look for scripts
+		if (resource.endsWith(SCRIPT_EXT)) {
+			isSpecial = true;
+			ext = SCRIPT_EXT;
+		}
+		// Strip special extensions whilst checking on disk
+		if (isSpecial) {
+			searchable = resource.substring(0, resource.lastIndexOf(ext));
+		}
+		// Return if found
+		if (velocityService.resourceExists(portalId, searchable) != null) {
+			return resource;
+		}
+		// Keep checking
+		int slash = resource.lastIndexOf('/');
+		if (slash != -1) {
+			return getBestMatchResource(resource.substring(0, slash));
+		}
+		return null;
+	}
 }

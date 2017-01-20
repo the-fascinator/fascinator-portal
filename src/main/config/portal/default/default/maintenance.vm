@@ -1,0 +1,9 @@
+<h2 id="page-heading">
+  #displayMessage("maintenance.mode.title")
+</h2>
+
+<div class="grid_2">&nbsp;</div>
+<div class="grid_12">
+#displayMessage("maintenance.mode.message")
+</div>
+<div class="grid_2">&nbsp;</div>
