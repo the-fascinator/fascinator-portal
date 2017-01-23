@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,7 +45,10 @@ import org.apache.tapestry5.services.RequestGlobals;
 import org.apache.tapestry5.services.Response;
 import org.apache.tapestry5.upload.services.MultipartDecoder;
 import org.apache.tapestry5.upload.services.UploadedFile;
+import org.json.simple.JSONArray;
 import org.slf4j.Logger;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.PathMatcher;
 
 import com.googlecode.fascinator.HarvestClient;
 import com.googlecode.fascinator.api.PluginException;
@@ -135,6 +139,8 @@ public class Dispatch {
 
 	private FormData formData;
 
+	private PathMatcher pathMatcher = new AntPathMatcher();
+
 	// Resource Processing variable
 	private String resourceName;
 	private String portalId;
@@ -151,6 +157,15 @@ public class Dispatch {
 
 	private JsonSimpleConfig sysConfig;
 
+	 	private String[] maintenanceModeExceptionPatterns;
+	
+	/**
+	 * Default URL patterns that are exempted from redirects (CSS and images as
+	 * well as the admin screens)
+	 */
+	private String[] defaultMaintenanceModeExceptionPatterns = { "**/*.js", "**/*.css", "**/*.png", "**/*.ico",
+			"**/*.jpg", "**/*.jpeg", "**/*.gif", "**/login", "**/**/login.ajax","**/systemSettings" };
+
 	/**
 	 * Entry point for Tapestry to send page requests.
 	 * 
@@ -165,6 +180,16 @@ public class Dispatch {
 		try {
 			sysConfig = new JsonSimpleConfig();
 			defaultPortal = sysConfig.getString(PortalManager.DEFAULT_PORTAL_NAME, "portal", "defaultView");
+			JSONArray configURLExceptions = sysConfig.getArray("maintenanceMode", "exceptionURLPatterns");
+			if (configURLExceptions != null) {
+				List<String> patterns = new ArrayList<String>();
+				for (Object patternObject : configURLExceptions) {
+					patterns.add((String) patternObject);
+				}
+				maintenanceModeExceptionPatterns = patterns.toArray(new String[] {});
+			} else {
+				maintenanceModeExceptionPatterns = defaultMaintenanceModeExceptionPatterns;
+			}
 		} catch (IOException ex) {
 			log.error("Error accessing system config", ex);
 			return new HttpStatusCodeResponse(500, "Sorry, an internal server error has occured");
@@ -416,8 +441,9 @@ public class Dispatch {
 				.getApplicationContext().getBean("maintenanceModeService");
 
 		if (path.length > 1 && !MAINTENANCE_MODE_RESOURCE.equals(path[1]) && maintenanceModeService.isMaintanceMode()) {
-			//If the request is for a file involved in rendering the maintenance page, we want them to pass through 
-			if (!requestUri.matches(".*\\.(js|css|png|jpg|jpeg|gif)")) {
+			// If the request is for a file involved in rendering the
+			// maintenance page, we want them to pass through
+			if (!isMaintenanceModeExceptionUrl(requestUri)) {
 				portalId = "".equals(path[0]) ? defaultPortal : path[0];
 				String url = request.getContextPath() + "/" + portalId + "/" + MAINTENANCE_MODE_RESOURCE;
 
@@ -453,6 +479,17 @@ public class Dispatch {
 
 		return match;
 
+	}
+
+	private boolean isMaintenanceModeExceptionUrl(String url) {
+
+		for (String pattern : maintenanceModeExceptionPatterns) {
+			if (pathMatcher.match(pattern, url)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
