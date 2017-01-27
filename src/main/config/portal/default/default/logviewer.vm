@@ -1,0 +1,93 @@
+#set($pageTitle = "Log Viewer ")
+<h2 id="page-heading">Log Viewer</h2>
+<div id="form-section" class="grid_16">
+    <div id="users-section" class="box">
+        <div id="logs-select" style="overflow: scroll;" >
+            <label style="width: 3em;display: inline-block;font-weight: bold;" for="logs-name">Log name:</label>
+            <select id="logs-name" name="logs-name">
+                <option value=''>Select a log file...</option>
+            </select>
+            <span id="logs-message" style="font-style: italic;"></span>
+        </div>
+        <div>
+            <textarea id="logs-view" name="blog_preamble" cols="50" rows="15" disabled="disabled" style="width: 100%;"></textarea>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="$portalPath/jaffa/libs/jquery/jquery.blockUI.js"></script>
+<script type="text/javascript">
+    <!--
+        $(function() {
+
+            function resetViewer() {
+                 $("#logs-view").val('');
+                 $("#logs-message").html('');
+            }
+
+            resetViewer();
+            $("#logs-select").click(function() {
+                currentSelection = $("#logs-name option:selected").val();
+                jQuery.ajax({
+                    type : "POST",
+                    url : "$portalPath/actions/listFileNames.ajax",
+                    success:
+                        function(data, status) {
+                            $("#logs-name").empty();
+                            jQuery.each(data, function(path, logname) {
+                                $("#logs-name").append("<option value='" + path + "'>" + logname + "</option>");
+                                if (currentSelection === path) {
+                                    $("#logs-name option[value='" + path + "']").attr("selected","selected");
+                                }
+                            });
+                            $("#logs-view").resizable();
+                        },
+                    error:
+                        function (req, status, e) {
+                            console.log(req.responseText);
+                        },
+                    data: {
+                        source: "logs"
+                    },
+                    dataType: "json"
+                });
+            });
+            $("#logs-name").change(function() {
+                $('#form-section').block();
+                selected = $(this).val();
+                resetViewer();
+                jQuery.ajax({
+                    type : "POST",
+                    url : "$portalPath/actions/listFileNames.ajax",
+                    success:
+                        function(data, status) {
+                            if (jQuery.isEmptyObject(data)) {
+                                $("#logs-message").html("(path requested does not exist)");
+                            }
+                            jQuery.each(data, function(path, contents) {
+                                var trimmed = jQuery.trim(contents);
+                                if (trimmed === '') {
+                                     resetViewer();
+                                    $("#logs-message").html("(log file is empty)");
+                                } else {
+                                    $("#logs-view").val(jQuery.trim(contents));
+                                }
+                                $("#logs-view").scrollTop($("#logs-view")[0].scrollHeight);
+                                $("#logs-view").attr('disabled','disabled');
+                            });
+                            $('#form-section').unblock();
+                        },
+                    error:
+                        function (req, status, e) {
+                            console.log(req.responseText);
+                            $('#form-section').unblock();
+                        },
+                    data: {
+                        source: "logs",
+                        path: selected
+                    },
+                    dataType: "json"
+                });
+            });
+        });
+    -->
+</script>
