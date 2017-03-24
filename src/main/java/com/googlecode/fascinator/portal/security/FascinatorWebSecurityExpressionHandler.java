@@ -64,10 +64,10 @@ public class FascinatorWebSecurityExpressionHandler extends
         return ctx;
     }
 
-    @Override
-    public ExpressionParser getExpressionParser() {
-        return expressionParser;
-    }
+//    @Override
+//    public ExpressionParser getExpressionParser() {
+//        return expressionParser;
+//    }
 
     @Override
     public void setRoleHierarchy(RoleHierarchy roleHierarchy) {
