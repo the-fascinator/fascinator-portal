@@ -47,6 +47,7 @@ public class FascinatorOwaspInterceptorFilter extends
     private JsonSimpleConfig config = new JsonSimpleConfig();
 
     public FascinatorOwaspInterceptorFilter() throws IOException {
+        LOG.info("starting filter for owasp...");
     }
 
     @Override
@@ -57,7 +58,6 @@ public class FascinatorOwaspInterceptorFilter extends
         checkConfigReload();
         SecurityWrapperResponse securityWrapperResponse = new SecurityWrapperResponse(response, "sanitize");
         checkHttpOnly(request, securityWrapperResponse);
-        checkContentSecurityPolicy(securityWrapperResponse);
         filterChain.doFilter(request, response);
     }
 
@@ -80,13 +80,6 @@ public class FascinatorOwaspInterceptorFilter extends
                     securityWrapperResponse.addCookie(cookie);
                 }
             }
-        }
-    }
-
-    private void checkContentSecurityPolicy(SecurityWrapperResponse securityWrapperResponse) {
-        String csp = config.getString(null, "owasp", "csp");
-        if (StringUtils.isNotBlank(csp)) {
-            securityWrapperResponse.addHeader("Content-Security-Policy", csp);
         }
     }
 }
