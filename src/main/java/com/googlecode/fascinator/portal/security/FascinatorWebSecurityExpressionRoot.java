@@ -259,7 +259,7 @@ public class FascinatorWebSecurityExpressionRoot extends
         try {
             allowedRoles = accessControl.getRoles(oid);
             if (allowedRoles != null) {
-                Collection<GrantedAuthority> userRoles = authentication
+                Collection<? extends GrantedAuthority> userRoles = authentication
                         .getAuthorities();
                 for (GrantedAuthority grantedAuthority : userRoles) {
                     if (allowedRoles.contains(grantedAuthority.getAuthority())) {

@@ -2,7 +2,7 @@ package com.googlecode.fascinator.portal.security;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.springframework.security.web.util.AntUrlPathMatcher;
+import org.springframework.util.AntPathMatcher;
 
 public class PortalSecurityTest {
 
@@ -16,7 +16,7 @@ public class PortalSecurityTest {
     }
 
     private boolean isMatchto(String urlPattern, String testingUrl) {
-        AntUrlPathMatcher urlMatcher = new AntUrlPathMatcher(true);
-        return urlMatcher.pathMatchesUrl(urlPattern, testingUrl);
+
+        return new AntPathMatcher().match(urlPattern, testingUrl);
     }
 }

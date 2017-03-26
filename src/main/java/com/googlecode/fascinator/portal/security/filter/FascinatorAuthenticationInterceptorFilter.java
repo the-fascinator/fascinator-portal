@@ -136,7 +136,6 @@ public class FascinatorAuthenticationInterceptorFilter extends
 
         }
         filterChain.doFilter(request, response);
-
     }
 
     private List<GrantedAuthority> buildRoleList(GenericUser user,

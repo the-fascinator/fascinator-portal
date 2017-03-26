@@ -1,26 +1,5 @@
 package com.googlecode.fascinator.portal.security;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-
-import javax.servlet.http.HttpServletRequest;
-
-import junit.framework.Assert;
-
-import org.junit.Test;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.GrantedAuthorityImpl;
-import org.springframework.security.web.FilterInvocation;
-
 import com.googlecode.fascinator.AccessManager;
 import com.googlecode.fascinator.api.access.AccessControlException;
 import com.googlecode.fascinator.api.access.AccessControlManager;
@@ -30,6 +9,27 @@ import com.googlecode.fascinator.api.storage.Storage;
 import com.googlecode.fascinator.api.storage.StorageException;
 import com.googlecode.fascinator.common.JsonObject;
 import com.googlecode.fascinator.common.JsonSimple;
+import junit.framework.Assert;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.web.FilterInvocation;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class FascinatorWebSecurityExpressionRootTest {
     FascinatorWebSecurityExpressionRoot fascinatorWebSecurityExpressionRoot;
@@ -54,7 +54,7 @@ public class FascinatorWebSecurityExpressionRootTest {
     }
 
     public void initialise(Properties properties, List<String> allowedRoles,
-            List<String> allowedUsers, JsonSimple workflowconfig) {
+                           List<String> allowedUsers, JsonSimple workflowconfig) {
         try {
             JsonObject workflowMetadataJson = new JsonObject();
             workflowMetadataJson.put("id", "arms");
@@ -68,14 +68,9 @@ public class FascinatorWebSecurityExpressionRootTest {
             Authentication auth = mock(Authentication.class);
             // Current user: testUser
             when(auth.getPrincipal()).thenReturn("testUser");
-            List<GrantedAuthority> grantedAuthorities = new ArrayList<GrantedAuthority>();
-            // Current user's role
-            List<GrantedAuthorityImpl> grantedAuthorityImpls = Arrays
-                    .asList((new GrantedAuthorityImpl("requester")));
-            for (GrantedAuthorityImpl grantedAuthorityImpl : grantedAuthorityImpls) {
-                grantedAuthorities.add(grantedAuthorityImpl);
-            }
-            when(auth.getAuthorities()).thenReturn(grantedAuthorities);
+            Collection<? extends GrantedAuthority> grantedAuthorities = Arrays
+                    .asList((new SimpleGrantedAuthority("requester")));
+            doReturn(grantedAuthorities).when(auth).getAuthorities();
 
             HttpServletRequest request = mock(HttpServletRequest.class);
             when(request.getRequestURI()).thenReturn(

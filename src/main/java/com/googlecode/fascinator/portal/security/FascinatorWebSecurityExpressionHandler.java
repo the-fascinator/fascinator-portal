@@ -22,6 +22,7 @@ import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.security.access.expression.SecurityExpressionOperations;
 import org.springframework.security.access.expression.SecurityExpressionRoot;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.authentication.AuthenticationTrustResolver;
@@ -32,6 +33,7 @@ import org.springframework.security.web.access.expression.DefaultWebSecurityExpr
 
 import com.googlecode.fascinator.api.access.AccessControl;
 import com.googlecode.fascinator.api.storage.Storage;
+import org.springframework.security.web.access.expression.WebSecurityExpressionRoot;
 
 /**
  * Spring security methods for Fascinator.
@@ -50,18 +52,12 @@ public class FascinatorWebSecurityExpressionHandler extends
     private AccessControl accessControl;
 
     @Override
-    public EvaluationContext createEvaluationContext(
-            Authentication authentication, FilterInvocation fi) {
-        StandardEvaluationContext ctx = new StandardEvaluationContext();
-        SecurityExpressionRoot root;
-        root = new FascinatorWebSecurityExpressionRoot(authentication, fi,
-                storage, accessControl);
+    protected SecurityExpressionOperations createSecurityExpressionRoot(Authentication authentication, FilterInvocation fi) {
+        WebSecurityExpressionRoot root = new FascinatorWebSecurityExpressionRoot(authentication, fi, storage, accessControl);
+        root.setPermissionEvaluator(getPermissionEvaluator());
         root.setTrustResolver(trustResolver);
-        root.setRoleHierarchy(roleHierarchy);
-
-        ctx.setRootObject(root);
-
-        return ctx;
+        root.setRoleHierarchy(getRoleHierarchy());
+        return root;
     }
 
 //    @Override
