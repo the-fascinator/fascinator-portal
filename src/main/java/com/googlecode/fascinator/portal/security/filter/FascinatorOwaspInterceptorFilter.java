@@ -19,11 +19,11 @@
 package com.googlecode.fascinator.portal.security.filter;
 
 import com.googlecode.fascinator.common.JsonSimpleConfig;
-import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 import org.owasp.esapi.filters.SecurityWrapperResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -32,6 +32,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Security Filter designed to audit against owasp recommentations for web security - incorporating these in addition to
@@ -73,7 +74,7 @@ public class FascinatorOwaspInterceptorFilter extends
 
     private void checkHttpOnly(HttpServletRequest request, SecurityWrapperResponse securityWrapperResponse) {
         if (config.getBoolean(false, "owasp", "httponly")) {
-            Cookie[] cookies = request.getCookies();
+            List<Cookie> cookies = CollectionUtils.arrayToList(request.getCookies());
             for (Cookie cookie : cookies) {
                 // ESAPI.securityConfiguration().getHttpSessionIdName() returns JSESSIONID by default configuration
                 if (ESAPI.securityConfiguration().getHttpSessionIdName().equals(cookie.getName())) {
