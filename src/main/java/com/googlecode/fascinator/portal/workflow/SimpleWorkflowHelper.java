@@ -1,36 +1,5 @@
 package com.googlecode.fascinator.portal.workflow;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.commons.io.filefilter.SuffixFileFilter;
-import org.apache.commons.lang.StringUtils;
-import org.apache.tapestry5.internal.KeyValue;
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.exception.MethodInvocationException;
-import org.apache.velocity.exception.ParseErrorException;
-import org.apache.velocity.exception.ResourceNotFoundException;
-import org.apache.velocity.runtime.RuntimeServices;
-import org.apache.velocity.runtime.RuntimeSingleton;
-import org.apache.velocity.runtime.parser.node.SimpleNode;
-import org.json.simple.JSONArray;
-
 import com.googlecode.fascinator.api.storage.DigitalObject;
 import com.googlecode.fascinator.api.storage.Storage;
 import com.googlecode.fascinator.api.storage.StorageException;
@@ -44,16 +13,28 @@ import com.googlecode.fascinator.messaging.TransactionManagerQueueConsumer;
 import com.googlecode.fascinator.portal.FormData;
 import com.googlecode.fascinator.portal.services.PortalManager;
 import com.googlecode.fascinator.portal.services.VelocityService;
-import com.googlecode.fascinator.portal.workflow.components.HtmlButton;
-import com.googlecode.fascinator.portal.workflow.components.HtmlComponent;
-import com.googlecode.fascinator.portal.workflow.components.HtmlDiv;
-import com.googlecode.fascinator.portal.workflow.components.HtmlFieldElement;
-import com.googlecode.fascinator.portal.workflow.components.HtmlForm;
-import com.googlecode.fascinator.portal.workflow.components.HtmlFormLayout;
-import com.googlecode.fascinator.portal.workflow.components.HtmlValidationFunction;
+import com.googlecode.fascinator.portal.services.OwaspSanitizer;
+import com.googlecode.fascinator.portal.workflow.components.*;
 import com.googlecode.fascinator.spring.ApplicationContextProvider;
+import org.apache.commons.io.filefilter.SuffixFileFilter;
+import org.apache.commons.lang.StringUtils;
+import org.apache.tapestry5.internal.KeyValue;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.runtime.RuntimeServices;
+import org.apache.velocity.runtime.RuntimeSingleton;
+import org.apache.velocity.runtime.parser.node.SimpleNode;
+import org.json.simple.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SimpleWorkflowHelper {
+    private final static Logger LOG = LoggerFactory.getLogger(SimpleWorkflowHelper.class);
 
     private Storage storage = null;
     private VelocityService velocityService = null;
@@ -63,9 +44,9 @@ public class SimpleWorkflowHelper {
     private VelocityContext baseVelocityContext = new VelocityContext();
     private MessagingServices messagingServices = null;
     private SimpleWorkflowPageCache cachedPages;
-    
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public SimpleWorkflowHelper() throws MessagingException {
         messagingServices = MessagingServices.getInstance();
         cachedPages = (SimpleWorkflowPageCache) ApplicationContextProvider
@@ -109,7 +90,7 @@ public class SimpleWorkflowHelper {
     }
 
     private void progressActionToNextStep(DigitalObject digitalObject,
-            JsonSimple workflowMetadata, String targetStep)
+                                          JsonSimple workflowMetadata, String targetStep)
             throws StorageException {
 
         workflowMetadata.getJsonObject().put("targetStep", targetStep);
@@ -150,11 +131,12 @@ public class SimpleWorkflowHelper {
 
         Set<String> fields = formData.getFormFields();
         for (String field : fields) {
+            LOG.debug("simple workflow field is: " + field);
             String fieldValue = formData.get(field);
             if (fieldValue != null) {
-                tfPackage.getJsonObject().put(field, fieldValue);
+                String sanititized = OwaspSanitizer.sanitizeHtml(fieldValue);
+                tfPackage.getJsonObject().put(field, sanititized);
             }
-
             Matcher m = p.matcher(field);
             m.find();
             if (m.matches()) {
@@ -251,14 +233,14 @@ public class SimpleWorkflowHelper {
         String step = workflowMetadata.getString(null, "step");
         SimpleWorkflowPageCacheKey key = new SimpleWorkflowPageCacheKey(portalId,
                 workflowId, step);
-        
+
         buildBaseVelocityContext();
         HtmlForm form = new HtmlForm();
         JsonObject stepObject = formConfiguration.getObject("stages", step);
         JSONArray formJsonArray;
         if (stepObject.get("config-file") != null) {
-        	stepObject = getJsonObject((String) stepObject
-        			.get("config-file"));
+            stepObject = getJsonObject((String) stepObject
+                    .get("config-file"));
             formJsonArray = (JSONArray) stepObject.get("divs");
         } else {
             formJsonArray = (JSONArray) stepObject.get("divs");
@@ -268,11 +250,10 @@ public class SimpleWorkflowHelper {
             form.setHtmlFooter(htmlFooter);
         }
         if (cachedPages.containsKey(key)) {
-            return renderPageTemplate(cachedPages.get(key),form);
+            return renderPageTemplate(cachedPages.get(key), form);
         } else {
-            
-         
-            
+
+
             for (int i = 0; i < formJsonArray.size(); i++) {
                 JsonObject htmlDivJson = (JsonObject) formJsonArray.get(i);
                 if (htmlDivJson.get("config-file") != null) {
@@ -288,7 +269,6 @@ public class SimpleWorkflowHelper {
                         .get(i)));
             }
 
-            
 
             JsonObject validationFunction = (JsonObject) stepObject
                     .get("validation-function");
@@ -310,42 +290,42 @@ public class SimpleWorkflowHelper {
                 form.setHtmlFormLayout(getFormLayout(formLayout));
             }
             String output = renderFormHtml(form);
-            RuntimeServices runtimeServices = RuntimeSingleton.getRuntimeServices();            
+            RuntimeServices runtimeServices = RuntimeSingleton.getRuntimeServices();
             StringReader reader = new StringReader(output);
             SimpleNode node = runtimeServices.parse(reader, "template");
             Template template = new Template();
             template.setRuntimeServices(runtimeServices);
             template.setData(node);
-            template.initDocument();            
+            template.initDocument();
             cachedPages.put(key, template);
-            
-            return renderPageTemplate(template,form);
+
+            return renderPageTemplate(template, form);
         }
     }
 
     private void buildBaseVelocityContext() {
-		for(Object key : parentVelocityContext.getKeys()) {
-			if(!key.equals("formData") && !key.equals("velocityContext")) {
-				baseVelocityContext.put((String)key, parentVelocityContext.get((String)key));
-			}
-		}
-		
-	}
+        for (Object key : parentVelocityContext.getKeys()) {
+            if (!key.equals("formData") && !key.equals("velocityContext")) {
+                baseVelocityContext.put((String) key, parentVelocityContext.get((String) key));
+            }
+        }
 
-	private String renderPageTemplate(Template template, HtmlForm form) throws Exception {
-		VelocityContext vc = new VelocityContext(baseVelocityContext);
-		FormData formData = (FormData)parentVelocityContext.get("formData");
-		for (String field : formData.getFormFields()) {
-			vc.put(field,formData.get(field));
-		}
-		String formFooterHtml = renderFormFooterHtml(form.getHtmlFooter());
+    }
+
+    private String renderPageTemplate(Template template, HtmlForm form) throws Exception {
+        VelocityContext vc = new VelocityContext(baseVelocityContext);
+        FormData formData = (FormData) parentVelocityContext.get("formData");
+        for (String field : formData.getFormFields()) {
+            vc.put(field, formData.get(field));
+        }
+        String formFooterHtml = renderFormFooterHtml(form.getHtmlFooter());
         vc.put("formFooterHtml", formFooterHtml);
-    	StringWriter writer = new StringWriter();
-		template.merge(vc,writer);
-		return writer.toString();
-	}
+        StringWriter writer = new StringWriter();
+        template.merge(vc, writer);
+        return writer.toString();
+    }
 
-	private JsonObject getJsonObject(String jsonObjectPath) throws IOException {
+    private JsonObject getJsonObject(String jsonObjectPath) throws IOException {
         File workflowConfigFile = FascinatorHome.getPathFile(jsonObjectPath);
         return new JsonSimple(workflowConfigFile).getJsonObject();
     }
@@ -400,7 +380,7 @@ public class SimpleWorkflowHelper {
 
         String validationFunction = renderValidationFunction(form
                 .getValidationFunction());
-        
+
         String formLayout = StringUtils.EMPTY;
         if (form.getHtmlFormLayout() != null) {
             formLayout = renderFormLayoutCode(form.getHtmlFormLayout());
@@ -409,7 +389,6 @@ public class SimpleWorkflowHelper {
         String validatorFunctions = renderValidatorFunctions(form
                 .getCustomValidators());
 
-        
 
         // Now that we have generated the elements we need for the html form.
         // Wrap it in the general form template
@@ -592,7 +571,7 @@ public class SimpleWorkflowHelper {
             }
         }
         VelocityContext vc = new VelocityContext(baseVelocityContext);
-        
+
 
         // Inject this buttonELementsHtml for use in the button-wrapper
         // template
@@ -637,7 +616,7 @@ public class SimpleWorkflowHelper {
     }
 
     private String renderHtmlFieldElement(HtmlFieldElement htmlFieldElement,
-            String fieldElementName) throws Exception {
+                                          String fieldElementName) throws Exception {
         VelocityContext vc = new VelocityContext(baseVelocityContext);
 
         Map<String, Object> parameterMap = htmlFieldElement.getParameterMap();
@@ -779,7 +758,7 @@ public class SimpleWorkflowHelper {
             throws IOException {
         String workflowConfigFileLocation = (String) systemConfiguration
                 .getObject(
-                        new Object[] { "portal", "packageTypes", workflowId })
+                        new Object[]{"portal", "packageTypes", workflowId})
                 .get("jsonconfig");
         File workflowConfigFile = FascinatorHome
                 .getPathFile("harvest/workflows/" + workflowConfigFileLocation);
