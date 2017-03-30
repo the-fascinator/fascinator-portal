@@ -21,17 +21,96 @@
 
 package com.googlecode.fascinator.portal.services;
 
+import com.googlecode.fascinator.common.JsonSimple;
+import com.googlecode.fascinator.common.StorageDataUtil;
+import org.owasp.esapi.ESAPI;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * @author Matt Mulholland
  * @date 29/3/17
  */
 public class OwaspSanitizer {
+    private static final StorageDataUtil storageDataUtil = new StorageDataUtil();
+
     private static final Logger LOG = LoggerFactory.getLogger(OwaspSanitizer.class);
+
+    public static void sanitizeTfPackage(JsonSimple tfpackage) {
+        sanitizeTfPackageNumberedFieldAndShadow(tfpackage, "dc:description", "text", "shadow");
+        LOG.debug("tfpackage after sanitized is: {}", tfpackage);
+    }
+
+    public static void sanitizeTfPackageField(JsonSimple tfpackage, String baseKey) {
+        LOG.debug("field to sanitize: {}", baseKey);
+        String text = tfpackage.getString("", baseKey);
+        String sanitized = sanitizeHtml(text);
+        updateTfPackageSanitizedKeyValue(tfpackage, sanitized, baseKey, text);
+    }
+
+    /** tfpackage numbered description text also has escaped value: shadow that needs to be handled
+     */
+    public static void sanitizeTfPackageNumberedFieldAndShadow(JsonSimple tfpackage, String baseKey, String suffixKey, String suffixShadowKey) {
+        Map<String, Object> map = storageDataUtil.getList(tfpackage, baseKey);
+        LOG.debug("numbered fields to sanitize: {}", map);
+        for (Map.Entry<String, Object> entrySet : map.entrySet()) {
+            String number = entrySet.getKey();
+            Map<String, Object> field = (Map) entrySet.getValue();
+            LOG.debug("processing: {}", number);
+            String text = (String) field.get(suffixKey);
+            String sanitized = sanitizeHtml(text);
+            String sanitizedShadow = escapeHtml(sanitized);
+            String keyToUpdate = baseKey + "." + number + "." + suffixKey;
+            String shadowKeyToUpdate = baseKey + "." + number + "." + suffixShadowKey;
+            updateTfPackageSanitizedKeyValue(tfpackage, sanitized, keyToUpdate, text);
+            updateTfPackageSanitizedKeyValue(tfpackage, sanitizedShadow, shadowKeyToUpdate, text);
+        }
+    }
+
+    public static void sanitizeTfPackageNumberedField(JsonSimple tfpackage, String baseKey, String suffixKey) {
+        Map<String, Object> map = storageDataUtil.getList(tfpackage, baseKey);
+        LOG.debug("numbered fields to sanitize: {}", map);
+        for (Map.Entry<String, Object> entrySet : map.entrySet()) {
+            String number = entrySet.getKey();
+            Map<String, Object> field = (Map) entrySet.getValue();
+            LOG.debug("processing: {}", number);
+            String text = (String) field.get(suffixKey);
+            String sanitized = OwaspSanitizer.sanitizeHtml(text);
+            String keyToUpdate = baseKey + "." + number + "." + suffixKey;
+            updateTfPackageSanitizedKeyValue(tfpackage, sanitized, keyToUpdate, text);
+        }
+    }
+
+    public static void sanitizeMapNumberedField(Map<String, Object> map, String subKey) {
+        LOG.debug("pre-sanitised map is: {}", map);
+        for (Map.Entry<String, Object> entrySet : map.entrySet()) {
+            String number = entrySet.getKey();
+            Map<String, Object> field = (Map) entrySet.getValue();
+            LOG.debug("processing outer map key: {}", number);
+            String text = (String) field.get(subKey);
+            String sanitized = sanitizeHtml(text);
+            field.put(subKey, sanitized);
+        }
+        LOG.debug("post-sanitized map is: {}", map);
+    }
+
+    public static String escapeHtml(String value) {
+        LOG.debug("incoming value before escaped: {}", value);
+        String escaped = ESAPI.encoder().encodeForHTML(value);
+        LOG.debug("outgoing value after escaped: {}", escaped);
+        return escaped;
+    }
+
+    private static void updateTfPackageSanitizedKeyValue(JsonSimple tfpackage, String sanitized, String keyToUpdate, String text) {
+        if (!text.equals(sanitized)) {
+            LOG.debug("updating key: {} to post-sanitized value: {}", keyToUpdate, sanitized);
+            tfpackage.getJsonObject().put(keyToUpdate, sanitized);
+        }
+    }
 
     /**
      * a basic sanitizer with default whitelist sanitizers
@@ -41,10 +120,10 @@ public class OwaspSanitizer {
     }
 
     public static String sanitizeCustomHtml(String value, PolicyFactory sanitizer) {
-        LOG.debug("pre-sanitized: " + value);
+        LOG.debug("pre-sanitized: {}", value);
         String sanititized = sanitizer.sanitize(value);
         if (!value.equals(sanititized)) {
-            LOG.info("post-sanitized: " + sanititized);
+            LOG.info("post-sanitized: {}", sanititized);
         }
         return sanititized;
     }
