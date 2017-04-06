@@ -23,6 +23,7 @@ package com.googlecode.fascinator.portal.services;
 
 import com.googlecode.fascinator.common.JsonSimple;
 import com.googlecode.fascinator.common.StorageDataUtil;
+import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
@@ -52,7 +53,8 @@ public class OwaspSanitizer {
         updateTfPackageSanitizedKeyValue(tfpackage, sanitized, baseKey, text);
     }
 
-    /** tfpackage numbered description text also has escaped value: shadow that needs to be handled
+    /**
+     * tfpackage numbered description text also has escaped value: shadow that needs to be handled
      */
     public static void sanitizeTfPackageNumberedFieldAndShadow(JsonSimple tfpackage, String baseKey, String suffixKey, String suffixShadowKey) {
         Map<String, Object> map = storageDataUtil.getList(tfpackage, baseKey);
@@ -100,7 +102,7 @@ public class OwaspSanitizer {
 
     public static String escapeHtml(String value) {
         LOG.debug("incoming value before escaped: {}", value);
-        String escaped = ESAPI.encoder().encodeForHTML(value);
+        String escaped = ESAPI.encoder().encodeForHTML(StringUtils.defaultIfEmpty(value, ""));
         LOG.debug("outgoing value after escaped: {}", escaped);
         return escaped;
     }
@@ -116,12 +118,12 @@ public class OwaspSanitizer {
      * a basic sanitizer with default whitelist sanitizers
      */
     public static String sanitizeHtml(String value) {
-        return sanitizeCustomHtml(value, getDefaultPolicy());
+        return sanitizeCustomHtml(StringUtils.defaultIfEmpty(value,""), getDefaultPolicy());
     }
 
     public static String sanitizeCustomHtml(String value, PolicyFactory sanitizer) {
         LOG.debug("pre-sanitized: {}", value);
-        String sanititized = sanitizer.sanitize(value);
+        String sanititized = sanitizer.sanitize(StringUtils.defaultIfEmpty(value, ""));
         if (!value.equals(sanititized)) {
             LOG.info("post-sanitized: {}", sanititized);
         }
