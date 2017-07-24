@@ -3,6 +3,10 @@
 <html>
     <head>
         #parseTemplate("layout/html-head.vm")
+        
+        #if($headTemplate)
+        	#parseTemplate($headTemplate)
+        #end
     </head>
     <body>
         #parseTemplate("layout/jquery-settings.vm")
