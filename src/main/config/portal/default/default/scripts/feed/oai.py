@@ -709,8 +709,11 @@ class OaiData:
             line = reader.readLine()
 
             while line is not None:
-                sb.append(line).append("\n")
-                line = reader.readLine()
+                if line.trim().matches("<\\?xml.*\\?>"):
+                    self.log.debug("Ignoring xml declaration")
+                else:
+                    sb.append(line).append("\n")
+                    line = reader.readLine()
             payload.close()
 
             if sb:
