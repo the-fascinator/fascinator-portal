@@ -1,4 +1,5 @@
 import random, time
+import re
 
 from datetime import datetime
 
@@ -707,10 +708,17 @@ class OaiData:
             sb = StringBuilder()
             reader = BufferedReader(InputStreamReader(payload.open(), "UTF-8"))
             line = reader.readLine()
-
+            p = re.compile('\s*<\?xml.*\?>\s*')
+            firstLine = True
             while line is not None:
-                if line.trim().matches("<\\?xml.*\\?>"):
-                    self.log.debug("Ignoring xml declaration")
+                if firstLine:
+                    if p.match(line) is not None:
+                        self.log.debug("Ignoring xml declaration")
+                        line = reader.readLine()
+                    else:
+                        sb.append(line).append("\n")
+                        line = reader.readLine()
+                    firstLine = False
                 else:
                     sb.append(line).append("\n")
                     line = reader.readLine()
