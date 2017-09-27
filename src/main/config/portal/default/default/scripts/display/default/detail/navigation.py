@@ -60,7 +60,9 @@ class NavigationData:
         return oid[0]
 
     def getObject(self):
-        if self.object is None:
+        if self.object:
+            return self.object
+        else:
             if self.metadata is not None:
                 oid = self.getOid()
                 if oid is not None:
