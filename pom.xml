@@ -1,15 +1,14 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.googlecode.the-fascinator</groupId>
     <artifactId>fascinator-portal</artifactId>
-    <version>1.4.1-SNAPSHOT</version>
+    <version>1.4.1</version>
     <packaging>war</packaging>
     <name>The Fascinator - Portal</name>
     <parent>
         <groupId>com.googlecode.the-fascinator</groupId>
         <artifactId>the-fascinator</artifactId>
-        <version>1.4.0.1-SNAPSHOT</version>
+        <version>1.4.0.1</version>
     </parent>
     <properties>
         <spring.integration.version>2.2.3.RELEASE</spring.integration.version>
@@ -19,12 +18,12 @@
         <dependency>
             <groupId>com.googlecode.the-fascinator</groupId>
             <artifactId>fascinator-core</artifactId>
-            <version>1.4.0.1-SNAPSHOT</version>
+            <version>1.4.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.the-fascinator</groupId>
             <artifactId>fascinator-common</artifactId>
-            <version>1.4.0.1-SNAPSHOT</version>
+            <version>1.4.0.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>velocity</groupId>
@@ -688,7 +687,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore/>
+                                        <ignore />
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>
