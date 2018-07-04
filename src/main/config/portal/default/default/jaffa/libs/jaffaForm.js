@@ -277,6 +277,12 @@ function jaffaForm(jaffaObject) {
         return null;
     }
 
+    form.htmlDecode = function(input)
+    {
+      var doc = new DOMParser().parseFromString(input, "text/html");
+      return doc.documentElement.textContent;
+    }
+    
     form.synch = function(dataLoad, fieldName) {
         if (dataLoad == null) dataLoad = false;
         var field;
@@ -287,7 +293,7 @@ function jaffaForm(jaffaObject) {
             // TODO: Testing
             for (field in jaffa.serverData) {
                 if (field in form.fields) {
-                    var result = form.value(field, jaffa.serverData[field]);
+                    var result = form.value(field, form.htmlDecode(jaffa.serverData[field]));
                     if (result == null) {
                         jaffa.logError("Error loading form field '" + field + "'. Unable to assign value to GUI.");
                     } else {
