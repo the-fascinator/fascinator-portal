@@ -134,7 +134,7 @@ public class SimpleWorkflowHelper {
             LOG.debug("simple workflow field is: " + field);
             String fieldValue = formData.get(field);
             if (fieldValue != null) {
-                String sanititized = OwaspSanitizer.sanitizeHtml(fieldValue);
+                String sanititized = OwaspSanitizer.sanitizeHtml(field, fieldValue);
                 tfPackage.getJsonObject().put(field, sanititized);
             }
             Matcher m = p.matcher(field);

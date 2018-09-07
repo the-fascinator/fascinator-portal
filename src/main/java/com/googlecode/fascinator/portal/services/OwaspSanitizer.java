@@ -22,6 +22,7 @@
 package com.googlecode.fascinator.portal.services;
 
 import com.googlecode.fascinator.common.JsonSimple;
+import com.googlecode.fascinator.common.JsonSimpleConfig;
 import com.googlecode.fascinator.common.StorageDataUtil;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
@@ -30,6 +31,10 @@ import org.owasp.html.Sanitizers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,6 +45,30 @@ public class OwaspSanitizer {
     private static final StorageDataUtil storageDataUtil = new StorageDataUtil();
 
     private static final Logger LOG = LoggerFactory.getLogger(OwaspSanitizer.class);
+    //    private static final JsonSimpleConfig config = checkConfigReload();
+    private static final List<String> whitelist = getWhitelist();
+
+
+    private static List<String> getWhitelist() {
+        List<String> list = new ArrayList<String>();
+        JsonSimpleConfig jsonSimpleConfig = getConfig();
+        if (jsonSimpleConfig != null) {
+            Collections.copy(list, jsonSimpleConfig.getStringList("owasp", "whitelist"));
+        } else {
+            LOG.warn("Unable to load system config. Returning an empty list...");
+        }
+        return list;
+    }
+
+    private static JsonSimpleConfig getConfig() {
+        JsonSimpleConfig jsonSimpleConfig = null;
+        try {
+            jsonSimpleConfig = new JsonSimpleConfig();
+        } catch (IOException e) {
+            LOG.warn("Problem with configuration loading.");
+        }
+        return jsonSimpleConfig;
+    }
 
     public static void sanitizeTfPackage(JsonSimple tfpackage) {
         sanitizeTfPackageNumberedFieldAndShadow(tfpackage, "dc:description", "text", "shadow");
@@ -49,7 +78,7 @@ public class OwaspSanitizer {
     public static void sanitizeTfPackageField(JsonSimple tfpackage, String baseKey) {
         LOG.debug("field to sanitize: {}", baseKey);
         String text = tfpackage.getString("", baseKey);
-        String sanitized = sanitizeHtml(text);
+        String sanitized = sanitizeHtml(baseKey, text);
         updateTfPackageSanitizedKeyValue(tfpackage, sanitized, baseKey, text);
     }
 
@@ -64,7 +93,7 @@ public class OwaspSanitizer {
             Map<String, Object> field = (Map) entrySet.getValue();
             LOG.debug("processing: {}", number);
             String text = (String) field.get(suffixKey);
-            String sanitized = sanitizeHtml(text);
+            String sanitized = sanitizeHtml(baseKey, text);
             String sanitizedShadow = escapeHtml(sanitized);
             String keyToUpdate = baseKey + "." + number + "." + suffixKey;
             String shadowKeyToUpdate = baseKey + "." + number + "." + suffixShadowKey;
@@ -81,7 +110,7 @@ public class OwaspSanitizer {
             Map<String, Object> field = (Map) entrySet.getValue();
             LOG.debug("processing: {}", number);
             String text = (String) field.get(suffixKey);
-            String sanitized = OwaspSanitizer.sanitizeHtml(text);
+            String sanitized = OwaspSanitizer.sanitizeHtml(baseKey, text);
             String keyToUpdate = baseKey + "." + number + "." + suffixKey;
             updateTfPackageSanitizedKeyValue(tfpackage, sanitized, keyToUpdate, text);
         }
@@ -94,7 +123,7 @@ public class OwaspSanitizer {
             Map<String, Object> field = (Map) entrySet.getValue();
             LOG.debug("processing outer map key: {}", number);
             String text = (String) field.get(subKey);
-            String sanitized = sanitizeHtml(text);
+            String sanitized = sanitizeHtml(subKey, text);
             field.put(subKey, sanitized);
         }
         LOG.debug("post-sanitized map is: {}", map);
@@ -117,8 +146,13 @@ public class OwaspSanitizer {
     /**
      * a basic sanitizer with default whitelist sanitizers
      */
-    public static String sanitizeHtml(String value) {
-        return sanitizeCustomHtml(StringUtils.defaultIfEmpty(value,""), getDefaultPolicy());
+    public static String sanitizeHtml(String field, String value) {
+        if (whitelist.contains(field)) {
+            LOG.warn("Field {} present in owasp whitelist. {} will not be sanitized.", field, value);
+            return value;
+        } else {
+            return sanitizeCustomHtml(StringUtils.defaultIfEmpty(value, ""), getDefaultPolicy());
+        }
     }
 
     public static String sanitizeCustomHtml(String value, PolicyFactory sanitizer) {
