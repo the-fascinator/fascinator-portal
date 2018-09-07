@@ -25,6 +25,7 @@ import com.googlecode.fascinator.common.JsonSimple;
 import com.googlecode.fascinator.common.JsonSimpleConfig;
 import com.googlecode.fascinator.common.StorageDataUtil;
 import org.apache.commons.lang.StringUtils;
+import org.json.simple.JSONArray;
 import org.owasp.esapi.ESAPI;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
@@ -32,9 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,19 +43,26 @@ public class OwaspSanitizer {
     private static final StorageDataUtil storageDataUtil = new StorageDataUtil();
 
     private static final Logger LOG = LoggerFactory.getLogger(OwaspSanitizer.class);
-    //    private static final JsonSimpleConfig config = checkConfigReload();
-    private static final List<String> whitelist = getWhitelist();
+    private static final JSONArray whitelist = getWhitelist();
 
 
-    private static List<String> getWhitelist() {
-        List<String> list = new ArrayList<String>();
-        JsonSimpleConfig jsonSimpleConfig = getConfig();
-        if (jsonSimpleConfig != null) {
-            Collections.copy(list, jsonSimpleConfig.getStringList("owasp", "whitelist"));
-        } else {
-            LOG.warn("Unable to load system config. Returning an empty list...");
+    private static JSONArray getWhitelist() {
+        try {
+            JsonSimpleConfig jsonSimpleConfig = getConfig();
+            if (jsonSimpleConfig != null) {
+                Object whitelist = jsonSimpleConfig.getPath("owasp", "whitelist");
+                if (whitelist instanceof JSONArray) {
+                    return (JSONArray)whitelist;
+                } else {
+                    LOG.info("No owasp whitelist was found in system config");
+                }
+            } else {
+                LOG.warn("Unable to load system config. Returning an empty list...");
+            }
+        } catch (Exception e) {
+            LOG.error("There was a problem with getting the owasp whitelist. Returning an empty list...", e);
         }
-        return list;
+        return new JSONArray();
     }
 
     private static JsonSimpleConfig getConfig() {
