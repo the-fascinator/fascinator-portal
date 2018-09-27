@@ -43,7 +43,7 @@ public class OwaspSanitizer {
     private static final StorageDataUtil storageDataUtil = new StorageDataUtil();
 
     private static final Logger LOG = LoggerFactory.getLogger(OwaspSanitizer.class);
-    private static final JSONArray whitelist = getWhitelist();
+    public static final JSONArray whitelist = getWhitelist();
 
 
     private static JSONArray getWhitelist() {
