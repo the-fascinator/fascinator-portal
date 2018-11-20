@@ -30,6 +30,7 @@ import org.apache.commons.lang.StringUtils;
 import org.json.simple.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.FilterInvocation;
@@ -45,6 +46,7 @@ import com.googlecode.fascinator.common.JsonObject;
 import com.googlecode.fascinator.common.JsonSimple;
 import com.googlecode.fascinator.common.JsonSimpleConfig;
 import com.googlecode.fascinator.common.storage.StorageUtils;
+import com.googlecode.fascinator.spring.ApplicationContextProvider;
 
 /**
  * Spring security check methods for Fascinator portal.
@@ -67,11 +69,8 @@ public class FascinatorWebSecurityExpressionRoot extends
     public FascinatorWebSecurityExpressionRoot(Authentication a,
             FilterInvocation fi) {
         super(a, fi);
-        try {
-            systemConfiguration = new JsonSimpleConfig();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        systemConfiguration = (JsonSimpleConfig)ApplicationContextProvider.getApplicationContext().getBean("fascinatorConfig");
+       
     }
 
     public FascinatorWebSecurityExpressionRoot(Authentication authentication,
