@@ -56,8 +56,8 @@ class PackagingData:
     def __createNew(self):
         self.vc("log").debug("Creating a new package...")
         packageType, jsonConfigFile = self.__getPackageTypeAndJsonConfigFile()
-        #self.vc("log").debug("packageType = '{}'", packageType)
-        #self.vc("log").debug("jsonConfigFile = '{}'", jsonConfigFile)
+        self.vc("log").debug("packageType = '{}'", packageType)
+        self.vc("log").debug("jsonConfigFile = '{}'", jsonConfigFile)
 
         manifestHash = "%s.tfpackage" % uuid.uuid4()
         # store the manifest file for harvesting
@@ -82,7 +82,7 @@ class PackagingData:
                 sequenceInfoJson = JsonSimple(sequenceInfo)
                 sequenceIndex = sequenceService.getSequence(sequenceInfoJson.getString(None,"sequenceName"))
                 jsonObj.put(sequenceInfoJson.getString(None,"metadataName"), String.format(sequenceInfoJson.getString(None,"stringFormat"),sequenceIndex))
-            
+        self.vc("log").debug("json object created is: %r" % jsonObj)
         outWriter.write(manifest.toString(True))
         outWriter.close()
         # adding ability to set access plugin
@@ -152,7 +152,7 @@ class PackagingData:
         else:
             manifest.setType(oldType)
 
-        #self.vc("log").debug("Manifest: {}", manifest)
+        self.vc("log").debug("Manifest: %s" % manifest)
         outWriter.write(manifest.toString(True))
         outWriter.close()
 
