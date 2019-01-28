@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.googlecode.the-fascinator</groupId>
         <artifactId>the-fascinator</artifactId>
-        <version>1.5</version>
+        <version>1.6-SNAPSHOT</version>
     </parent>
     <properties>
         <spring.integration.version>2.2.3.RELEASE</spring.integration.version>
@@ -704,7 +704,7 @@
         <!-- Snapshots are not synched with Maven central -->
         <repository>
             <id>fascinator-snapshots</id>
-            <url>http://dev.redboxresearchdata.com.au/nexus/content/repositories/sonatype-snapshots-3/</url>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
             <releases>
                 <enabled>false</enabled>
             </releases>
