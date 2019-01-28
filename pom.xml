@@ -704,7 +704,7 @@
         <!-- Snapshots are not synched with Maven central -->
         <repository>
             <id>fascinator-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <url>http://dev.redboxresearchdata.com.au/nexus/content/repositories/sonatype-snapshots-3/</url>
             <releases>
                 <enabled>false</enabled>
             </releases>

@@ -5,7 +5,7 @@ services:
 before_install:
 - mkdir /tmp/build
 - docker pull qcifengineering/redbox-builder
-- docker run -v /tmp/build:/build -e "CLONEPATH=https://github.com/the-fascinator/fascinator-portal.git" qcifengineering/redbox-builder /bin/bash -c "cd build;git clone https://github.com/the-fascinator/fascinator-portal.git src; cd src; mvn -Dmaven.repo.local=/m2_repo -U clean package"
+- docker run -v /tmp/build:/build -e "CLONEPATH=https://github.com/the-fascinator/fascinator-portal.git" qcifengineering/redbox-builder /bin/bash -c "cd build;git clone https://github.com/the-fascinator/fascinator-portal.git src; cd src; mvn -Dmaven.repo.local=/m2_repo -U clean install"
 install: true
 script: true
 after_success:
