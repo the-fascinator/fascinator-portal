@@ -202,10 +202,12 @@ class SearchData:
             owner_query = 'owner:"' + current_user + '"'
             security_query = "(" + security_filter + ") OR (" + security_exceptions + ") OR (" + owner_query + ")"
             req.addParam("fq", security_query)
-        
+        ## uncomment to ensure guest users not logged in cannot see alerts in browse page
+        # self.filterOutWorkflowStepForUnAuth(req, "inbox")
+
         req.setParam("start", str((self.__pageNum - 1) * recordsPerPage))
         
-        #print " * search.py:", req.toString(), self.__pageNum
+        self.log.debug(" * search.py: %s, page: %s" % (req.toString(), self.__pageNum))
         
         out = ByteArrayOutputStream()
         self.services.indexer.search(req, out)
@@ -215,6 +217,12 @@ class SearchData:
                                        self.__result.getNumFound(),
                                        self.__portal.recordsPerPage)
     
+    def filterOutWorkflowStepForUnAuth(self, req, workflow_step):
+        if self.page.authentication.get_username() == 'guest' and not self.page.authentication.is_logged_in():
+            step_filter = [workflow_step]
+            no_alerts_for_non_auth = ' - workflow_step:("' + ''.join(step_filter) + '")'
+            req.addParam("fq", no_alerts_for_non_auth)
+
     def __escapeQuery(self, q):
         temp = ""
         chars = "+-&|!(){}[]^\"~*?:\\"
