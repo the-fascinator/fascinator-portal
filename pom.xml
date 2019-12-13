@@ -631,7 +631,7 @@
                                     <artifactId>fascinator-common</artifactId>
                                     <classifier>hibernateauth</classifier>
                                     <type>zip</type>
-                                    <version>1.6-SNAPSHOT</version>
+                                    <version>1.6</version>
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
