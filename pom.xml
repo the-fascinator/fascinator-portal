@@ -700,7 +700,12 @@
             </plugins>
         </pluginManagement>
     </build>
-    <repositories>
+   <scm>
+    <connection>scm:git:git@github.com:the-fascinator/fascinator-portal.git</connection>
+    <developerConnection>scm:git:git@github.com:the-fascinator/fascinator-portal.git</developerConnection>
+    <url>https://github.com/the-fascinator/fascinator-portal</url>
+  </scm>
+	    <repositories>
         <repository>
             <id>redbox-nexus</id>
             <url>http://dev.redboxresearchdata.com.au/nexus/content/groups/public/</url>
@@ -710,7 +715,7 @@
             <id>redbox-remote-snapshots</id>
             <url>https://oss.sonatype.org/content/groups/public/</url>
             <releases>
-                <enabled>false</enabled>
+                <enabled>true</enabled>
             </releases>
             <snapshots>
                 <enabled>true</enabled>
