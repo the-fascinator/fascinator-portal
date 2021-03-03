@@ -17,19 +17,17 @@
  ******************************************************************************/
 package com.googlecode.fascinator.portal.process;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.lang.reflect.Method;
-import java.util.*;
-
-import org.apache.commons.mail.ByteArrayDataSource;
-import org.apache.commons.mail.DefaultAuthenticator;
-import org.apache.commons.mail.Email;
-import org.apache.commons.mail.EmailAttachment;
-import org.apache.commons.mail.MultiPartEmail;
-import org.apache.commons.mail.SimpleEmail;
+import com.googlecode.fascinator.api.indexer.Indexer;
+import com.googlecode.fascinator.api.indexer.IndexerException;
+import com.googlecode.fascinator.api.indexer.SearchRequest;
+import com.googlecode.fascinator.common.JsonObject;
+import com.googlecode.fascinator.common.JsonSimple;
+import com.googlecode.fascinator.common.StorageDataUtil;
+import com.googlecode.fascinator.common.solr.SolrDoc;
+import com.googlecode.fascinator.common.solr.SolrResult;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.mail.*;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
 import org.apache.velocity.exception.MethodInvocationException;
@@ -39,17 +37,11 @@ import org.json.simple.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.googlecode.fascinator.api.indexer.Indexer;
-import com.googlecode.fascinator.api.indexer.IndexerException;
-import com.googlecode.fascinator.api.indexer.SearchRequest;
-import com.googlecode.fascinator.common.JsonObject;
-import com.googlecode.fascinator.common.JsonSimple;
-import com.googlecode.fascinator.common.StorageDataUtil;
-import com.googlecode.fascinator.common.solr.SolrDoc;
-import com.googlecode.fascinator.common.solr.SolrResult;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.*;
 
 /**
  * Template-aware email utility class.
@@ -88,17 +80,6 @@ public class EmailNotifier implements Processor {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", tls);
 
-    }
-
-    private void executeHandlers(SolrDoc solrDoc, List<String> handlers,
-                          JsonSimple config, VelocityContext context) {
-
-        for (String handler : handlers) {
-            Class c = Class.forName("DemoTest");
-            Method method = c.getDeclaredMethod("sampleMethod", null);
-            method.setAccessible(true);
-            method.invoke(obj, null);
-        }
     }
 
     /**
@@ -319,24 +300,29 @@ public class EmailNotifier implements Processor {
             String to = config.getString("", "to");
             String from = config.getString("", "from");
             String recipient = evaluateStr(to, context);
-            List<String> recipientsList = Arrays.asList(recipient.split(","));
-            if (recipientsList.size() > 1) {
-                for (String nextRecipient:  recipientsList) {
-                    if (nextRecipient.startsWith("$")) {
-                        recipientsList.remove(nextRecipient);
+            boolean hasRecipientsFailed = recipient.startsWith("$");
+            if (isVariableNameHiddenIfEmpty) {
+                List<String> recipientsList = Arrays.asList(recipient.split(","));
+                if (recipientsList.size() > 1) {
+                    for (String nextRecipient:  recipientsList) {
+                        if (nextRecipient.startsWith("$")) {
+                            recipientsList.remove(nextRecipient);
+                        }
                     }
                 }
+                recipient = StringUtils.join(recipientsList, ",");
+                hasRecipientsFailed = recipientsList.size() < 1;
             }
-            String sanitizedRecipients = StringUtils.join(recipientsList, ",");
-            if (recipientsList.size() < 1) {
+
+            if (hasRecipientsFailed) {
                 // exception encountered...
                 log.error("Failed to build the email recipient:'"
-                        + sanitizedRecipients
+                        + recipient
                         + "'. Please check the mapping field and verify that it exists and is populated in Solr.");
                 failedOids.add(oid);
                 continue;
             }
-            if (!email(oid, from, sanitizedRecipients, subject, body)) {
+            if (!email(oid, from, recipient, subject, body)) {
                 failedOids.add(oid);
             }
         }
