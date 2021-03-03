@@ -20,10 +20,7 @@
 package com.googlecode.fascinator.portal.security.filter;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -31,6 +28,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.json.simple.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -59,6 +58,8 @@ public class FascinatorAuthenticationInterceptorFilter extends
 
     private AuthenticationManager authManager = null;
     private PortalSecurityManager portalSecurityManager;
+    private Logger log = LoggerFactory
+            .getLogger(FascinatorAuthenticationInterceptorFilter.class);
 
     public FascinatorAuthenticationInterceptorFilter() throws IOException {
     }
@@ -90,7 +91,20 @@ public class FascinatorAuthenticationInterceptorFilter extends
                     token = new PreAuthenticatedAuthenticationToken(
                             jsonSessionState.get("username"), "password");
                     SpringUser user = new SpringUser();
-                    user.setUsername((String) jsonSessionState.get("username"));
+                    if (log.isDebugEnabled()) {
+                        log.debug("printing out jsession state...");
+                        for (Map.Entry<String, Object> entry : jsonSessionState.entrySet()) {
+                            log.debug(entry.getKey() + " => " + entry.getValue());
+                        }
+                    }
+                    Object jsonSessionUserObject = jsonSessionState.get("username");
+                    if (jsonSessionUserObject instanceof List) {
+                        log.debug("Incoming username is not a string. Attempting to convert...");
+                        String jsonSessionUser = ((List<String>)jsonSessionUserObject).get(0);
+                        user.setUsername(jsonSessionUser);
+                    } else {
+                        user.setUsername((String) jsonSessionState.get("username"));
+                    }
                     user.setSource((String) jsonSessionState.get("source"));
                     token.setDetails(user);
                 }

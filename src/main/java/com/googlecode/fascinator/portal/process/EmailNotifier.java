@@ -21,12 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
+import java.lang.reflect.Method;
+import java.util.*;
 
 import org.apache.commons.mail.ByteArrayDataSource;
 import org.apache.commons.mail.DefaultAuthenticator;
@@ -92,6 +88,17 @@ public class EmailNotifier implements Processor {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", tls);
 
+    }
+
+    private void executeHandlers(SolrDoc solrDoc, List<String> handlers,
+                          JsonSimple config, VelocityContext context) {
+
+        for (String handler : handlers) {
+            Class c = Class.forName("DemoTest");
+            Method method = c.getDeclaredMethod("sampleMethod", null);
+            method.setAccessible(true);
+            method.invoke(obj, null);
+        }
     }
 
     /**
@@ -286,6 +293,7 @@ public class EmailNotifier implements Processor {
         String subjectTemplate = config.getString("", "subject");
         String bodyTemplate = config.getString("", "body");
         List<String> vars = config.getStringList("vars");
+        List<String> handlers = config.getStringList("handlers");
         log.debug("Email step with subject template:" + subjectTemplate);
         for (String oid : oids) {
             log.debug("Sending email notification for oid:" + oid);
@@ -297,6 +305,7 @@ public class EmailNotifier implements Processor {
             List<SolrDoc> results = resultObject.getResults();
             SolrDoc solrDoc = results.get(0);
             VelocityContext context = new VelocityContext();
+            executeHandlers(solrDoc, handlers, config, context);
             initVars(solrDoc, vars, config, context);
             String subject;
             String body;
@@ -310,19 +319,30 @@ public class EmailNotifier implements Processor {
             String to = config.getString("", "to");
             String from = config.getString("", "from");
             String recipient = evaluateStr(to, context);
-            if (recipient.startsWith("$")) {
+            List<String> recipientsList = Arrays.asList(recipient.split(","));
+            if (recipientsList.size() > 1) {
+                for (String nextRecipient:  recipientsList) {
+                    if (nextRecipient.startsWith("$")) {
+                        recipientsList.remove(nextRecipient);
+                    }
+                }
+            }
+            String sanitizedRecipients = StringUtils.join(recipientsList, ",");
+            if (recipientsList.size() < 1) {
                 // exception encountered...
                 log.error("Failed to build the email recipient:'"
-                        + recipient
+                        + sanitizedRecipients
                         + "'. Please check the mapping field and verify that it exists and is populated in Solr.");
                 failedOids.add(oid);
                 continue;
             }
-            if (!email(oid, from, recipient, subject, body)) {
+            if (!email(oid, from, sanitizedRecipients, subject, body)) {
                 failedOids.add(oid);
             }
         }
     }
+
+
 
 
     /**
