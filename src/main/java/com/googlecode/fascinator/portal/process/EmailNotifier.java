@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright (C) 2013 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -45,10 +45,8 @@ import java.util.*;
 
 /**
  * Template-aware email utility class.
- * 
- * 
+ *
  * @author Shilo Banihit
- * 
  */
 public class EmailNotifier implements Processor {
 
@@ -64,7 +62,7 @@ public class EmailNotifier implements Processor {
 
     /**
      * Initialises this instance.
-     * 
+     *
      * @param config
      */
     private void init(JsonSimple config) {
@@ -85,14 +83,14 @@ public class EmailNotifier implements Processor {
     /**
      * Replaces any variables in the templates using the mapping specified in
      * the config.
-     * 
+     *
      * @param solrDoc
      * @param vars
      * @param config
      * @param context
      */
     private void initVars(SolrDoc solrDoc, List<String> vars,
-            JsonSimple config, VelocityContext context) {
+                          JsonSimple config, VelocityContext context) {
         for (String var : vars) {
             String varField = config.getString("", "mapping", var);
             String replacement = getCollectionValues(config, solrDoc, varField);
@@ -111,7 +109,7 @@ public class EmailNotifier implements Processor {
                         // giving up, setting back to source value so caller can
                         // evaluate
                         if (isVariableNameHiddenIfEmpty) {
-                           replacement = "";
+                            replacement = "";
                         } else {
                             replacement = var;
                         }
@@ -145,28 +143,28 @@ public class EmailNotifier implements Processor {
             String nextDelimiter = " ";
 
             for (JsonObject collectionRow : jsonList) {
-            	if (fieldSeparators instanceof JSONArray && fieldSeparators.size() > 0) {
-            		// if no more delimiters, continue to use the last one specified
+                if (fieldSeparators instanceof JSONArray && fieldSeparators.size() > 0) {
+                    // if no more delimiters, continue to use the last one specified
                     Object nextFieldSeparator = fieldSeparators.remove(0);
                     if (nextFieldSeparator instanceof String) {
-                        nextDelimiter = (String)nextFieldSeparator;
-                    }  else {
+                        nextDelimiter = (String) nextFieldSeparator;
+                    } else {
                         log.warn("Unable to retrieve String value from fieldSeparator: " + fieldSeparators.toString());
                     }
-            	}
+                }
                 List<String> collectionValuesList = new ArrayList<String>();
                 for (Object requiredKey : subKeys) {
-                	Object rawKeyValue = collectionRow.get(requiredKey);
-                	if (rawKeyValue instanceof String) {
-                		String keyValue = StringUtils.trim((String)rawKeyValue);
-                		if (StringUtils.isNotBlank(keyValue)) {
+                    Object rawKeyValue = collectionRow.get(requiredKey);
+                    if (rawKeyValue instanceof String) {
+                        String keyValue = StringUtils.trim((String) rawKeyValue);
+                        if (StringUtils.isNotBlank(keyValue)) {
                             collectionValuesList.add(keyValue);
-                		} else if (!isVariableNameHiddenIfEmpty) {
+                        } else if (!isVariableNameHiddenIfEmpty) {
                             collectionValuesList.add("$" + requiredKey);
                         } else {
                             log.info("blank variable name will be hidden: " + keyValue);
                         }
-                	} else {
+                    } else {
                         log.warn("No string value returned from: " + requiredKey);
                     }
                 }
@@ -183,7 +181,7 @@ public class EmailNotifier implements Processor {
      * Apart from evaluating the template using velocity context, this method also adds velocity's quiet reference
      * and finally cleans up any punctuation left behind by empty references.
      *
-     * @param context:   velocity context
+     * @param context: velocity context
      * @param source:  email template
      * @return : sanitized and velocity evaluated string
      */
@@ -223,11 +221,10 @@ public class EmailNotifier implements Processor {
     /**
      * Main processing method. This class can comprise of multiple email
      * configuration blocks, specified by 'id' array.
-     * 
      */
     @Override
     public boolean process(String id, String inputKey, String outputKey,
-            String stage, String configFilePath, HashMap<String, Object> dataMap)
+                           String stage, String configFilePath, HashMap<String, Object> dataMap)
             throws Exception {
         log.debug("Email notifier starting:" + id);
         JsonSimple config = new JsonSimple(new File(configFilePath));
@@ -258,7 +255,7 @@ public class EmailNotifier implements Processor {
 
     /**
      * Process a particular email config.
-     * 
+     *
      * @param outputKey
      * @param dataMap
      * @param config
@@ -269,12 +266,11 @@ public class EmailNotifier implements Processor {
      * @throws IOException
      */
     private void doEmail(String outputKey, HashMap dataMap, JsonSimple config,
-            Indexer indexer, HashSet<String> failedOids, Collection<String> oids)
+                         Indexer indexer, HashSet<String> failedOids, Collection<String> oids)
             throws IndexerException, IOException {
         String subjectTemplate = config.getString("", "subject");
         String bodyTemplate = config.getString("", "body");
         List<String> vars = config.getStringList("vars");
-        List<String> handlers = config.getStringList("handlers");
         log.debug("Email step with subject template:" + subjectTemplate);
         for (String oid : oids) {
             log.debug("Sending email notification for oid:" + oid);
@@ -286,7 +282,6 @@ public class EmailNotifier implements Processor {
             List<SolrDoc> results = resultObject.getResults();
             SolrDoc solrDoc = results.get(0);
             VelocityContext context = new VelocityContext();
-            executeHandlers(solrDoc, handlers, config, context);
             initVars(solrDoc, vars, config, context);
             String subject;
             String body;
@@ -303,11 +298,11 @@ public class EmailNotifier implements Processor {
             boolean hasRecipientsFailed = recipient.startsWith("$");
             if (isVariableNameHiddenIfEmpty) {
                 List<String> recipientsList = Arrays.asList(recipient.split(","));
-                if (recipientsList.size() > 1) {
-                    for (String nextRecipient:  recipientsList) {
-                        if (nextRecipient.startsWith("$")) {
-                            recipientsList.remove(nextRecipient);
-                        }
+                Iterator<String> itr = recipientsList.iterator();
+                while (itr.hasNext()) {
+                    String nextRecipient = itr.next();
+                    if (nextRecipient.startsWith("$")) {
+                        itr.remove();
                     }
                 }
                 recipient = StringUtils.join(recipientsList, ",");
@@ -329,11 +324,9 @@ public class EmailNotifier implements Processor {
     }
 
 
-
-
     /**
      * Send the actual email.
-     * 
+     *
      * @param oid
      * @param from
      * @param recipient
@@ -342,7 +335,7 @@ public class EmailNotifier implements Processor {
      * @return
      */
     public boolean email(String oid, String from, String recipient,
-            String subject, String body) {
+                         String subject, String body) {
         try {
             Email email = new SimpleEmail();
             log.debug("Email host: " + host);
@@ -379,8 +372,8 @@ public class EmailNotifier implements Processor {
     }
 
     public boolean emailAttachment(String from, String recipient,
-            String subject, String body, byte[] attachData,
-            String attachDataType, String attachFileName, String attachDesc)
+                                   String subject, String body, byte[] attachData,
+                                   String attachDataType, String attachFileName, String attachDesc)
             throws Exception {
         MultiPartEmail email = new MultiPartEmail();
         email.attach(new ByteArrayDataSource(attachData, attachDataType),

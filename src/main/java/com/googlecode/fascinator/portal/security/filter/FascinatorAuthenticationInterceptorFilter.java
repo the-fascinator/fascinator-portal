@@ -19,15 +19,10 @@
  */
 package com.googlecode.fascinator.portal.security.filter;
 
-import java.io.IOException;
-import java.util.*;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.json.simple.JSONArray;
+import com.googlecode.fascinator.common.authentication.GenericUser;
+import com.googlecode.fascinator.common.authentication.SpringUser;
+import com.googlecode.fascinator.portal.JsonSessionState;
+import com.googlecode.fascinator.portal.services.PortalSecurityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -39,12 +34,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.googlecode.fascinator.common.JsonObject;
-import com.googlecode.fascinator.common.JsonSimpleConfig;
-import com.googlecode.fascinator.common.authentication.GenericUser;
-import com.googlecode.fascinator.common.authentication.SpringUser;
-import com.googlecode.fascinator.portal.JsonSessionState;
-import com.googlecode.fascinator.portal.services.PortalSecurityManager;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Security Filter designed to pickup changes in the login status of a user and
