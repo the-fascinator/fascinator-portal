@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.googlecode.the-fascinator</groupId>
     <artifactId>fascinator-portal</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.7</version>
     <packaging>war</packaging>
     <name>The Fascinator - Portal</name>
     <parent>
@@ -23,7 +23,7 @@
         <dependency>
             <groupId>com.googlecode.the-fascinator</groupId>
             <artifactId>fascinator-common</artifactId>
-            <version>1.7-SNAPSHOT</version>
+            <version>1.7</version>
             <exclusions>
                 <exclusion>
                     <groupId>velocity</groupId>
@@ -631,7 +631,7 @@
                                     <artifactId>fascinator-common</artifactId>
                                     <classifier>hibernateauth</classifier>
                                     <type>zip</type>
-                                    <version>1.7-SNAPSHOT</version>
+                                    <version>1.7</version>
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
