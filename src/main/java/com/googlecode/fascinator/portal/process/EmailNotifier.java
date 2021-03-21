@@ -270,6 +270,7 @@ public class EmailNotifier implements Processor {
             throws IndexerException, IOException {
         String subjectTemplate = config.getString("", "subject");
         String bodyTemplate = config.getString("", "body");
+        String emailFormat = config.getString("", "format");
         List<String> vars = config.getStringList("vars");
         log.debug("Email step with subject template:" + subjectTemplate);
         for (String oid : oids) {
@@ -317,7 +318,7 @@ public class EmailNotifier implements Processor {
                 failedOids.add(oid);
                 continue;
             }
-            if (!email(oid, from, recipient, subject, body)) {
+            if (!email(oid, from, recipient, subject, body, emailFormat)) {
                 failedOids.add(oid);
             }
         }
@@ -335,9 +336,15 @@ public class EmailNotifier implements Processor {
      * @return
      */
     public boolean email(String oid, String from, String recipient,
-                         String subject, String body) {
+                         String subject, String body, String emailFormat) {
+        boolean isHtml = emailFormat.equals("html");
         try {
-            Email email = new SimpleEmail();
+            Email email;
+            if (isHtml) {
+                email = new HtmlEmail();
+            } else {
+                email = new SimpleEmail();
+            }
             log.debug("Email host: " + host);
             log.debug("Email port: " + port);
             log.debug("Email username: " + username);
@@ -354,6 +361,11 @@ public class EmailNotifier implements Processor {
             email.setTLS("true".equalsIgnoreCase(tls));
             email.setFrom(from);
             email.setSubject(subject);
+            if (isHtml) {
+                ((HtmlEmail) email).setHtmlMsg(body);
+            } else {
+                email.setMsg(body);
+            }
             email.setMsg(body);
             if (recipient.indexOf(",") >= 0) {
                 String[] recs = recipient.split(",");
