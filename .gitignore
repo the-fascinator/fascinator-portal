@@ -8,3 +8,5 @@
 /bin
 /target
 *.iml
+.classpath
+.idea/
